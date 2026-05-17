@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Receipt, Camera, User, LogOut } from 'lucide-react';
 import { Button } from '@/src/components/ui/Button';
 import { useLogout } from '@/src/hooks/useAuth';
@@ -10,8 +11,15 @@ interface TopNavProps {
   onLogoutClick: () => void;
 }
 
+function navClass(active: boolean) {
+  return active
+    ? 'border-b-2 border-[#1a1a1a] pb-1 text-[14px] font-medium text-[#1a1a1a]'
+    : 'border-b-2 border-transparent pb-1 text-[14px] text-gray-500 hover:text-gray-700';
+}
+
 export function TopNav({ onLogoutClick }: TopNavProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const pathname = usePathname();
 
   return (
     <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[#e5e7eb] bg-white px-6">
@@ -21,16 +29,13 @@ export function TopNav({ onLogoutClick }: TopNavProps) {
       </div>
 
       <nav className="flex gap-6">
-        <Link
-          href="/home"
-          className="border-b-2 border-[#1a1a1a] pb-1 text-[14px] font-medium text-[#1a1a1a]"
-        >
+        <Link href="/home" className={navClass(pathname === '/home')}>
           Головна
         </Link>
-        <Link
-          href="#"
-          className="border-b-2 border-transparent pb-1 text-[14px] text-gray-500 hover:text-gray-700"
-        >
+        <Link href="/home/stores" className={navClass(pathname === '/home/stores')}>
+          Магазини
+        </Link>
+        <Link href="#" className={navClass(false)}>
           Статистика
         </Link>
       </nav>
