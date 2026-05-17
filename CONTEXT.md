@@ -5,10 +5,12 @@
 
 ---
 
-## Оновлено: 2026-05-17 — Item Categories Module
+## Оновлено: 2026-05-17 — Receipts Module
 
 ### Існуючі Pages
 
+- `/receipts` — `app/receipts/page.tsx` — таблиця чеків з пошуком, DetailsModal/EditModal/DeleteModal, пагінація ("Завантажити ще"), empty/error states
+- `/receipts/upload` — `app/receipts/upload/page.tsx` — 4-крокова форма: вибір файлу → метадані+LLM → preview товарів → success
 - `/settings/stores` — `app/settings/stores/page.tsx` — управління магазинами (системні locked, власні: modal edit + delete з orange banner якщо receiptsCount > 0)
 - `/settings/payment-methods` — `app/settings/payment-methods/page.tsx` — modal CRUD з delete (нейтральна CreditCard іконка, без type)
 - `/settings/transaction-categories` — `app/settings/transaction-categories/page.tsx` — системні locked, власні pencil-only (no delete до V2)
@@ -48,7 +50,7 @@
   Темна ліва панель з лого і підзаголовком Receiptly
 
 - **TopNav** (`src/components/features/home/TopNav.tsx`)
-  Props: onLogoutClick() — top navigation bar з лого, nav links (Головна, Статистика), avatar dropdown (Профіль, Налаштування → /settings/stores, Вийти)
+  Props: onLogoutClick() — top nav з лого, nav links (Головна, Чеки, Статистика), "Додати чек" → /receipts/upload, avatar dropdown (Профіль, Налаштування → /settings/stores, Вийти)
 
 - **SettingsSidebar** (`src/components/features/settings/SettingsSidebar.tsx`)
   Sidebar for /settings/* routes. Sections: "Довідники" (Магазини, Методи оплати, Категорії транзакцій, Категорії товарів) + "Акаунт" (Профіль). Active item highlighted via usePathname().
@@ -56,6 +58,9 @@
 ---
 
 ### Існуючі Hooks
+
+- **useReceipts()** → `{ receipts, total, page, hasMore, isLoading, error, loadMore, createReceipt, updateReceipt, removeReceipt, refresh }` (`src/hooks/useReceipts.ts`)
+  Для: список чеків з пагінацією. loadMore → appends. Всі мутації повертають `{ error? }`.
 
 - **useItemCategories()** → `{ categories, isLoading, error, createCategory, updateCategory, removeCategory, removeConfirmedCategory }` (`src/hooks/useItemCategories.ts`)
   Для: управління категоріями товарів. removeCategory → `{ itemsCount?, error? }`, removeConfirmedCategory → `{ error? }`
@@ -88,6 +93,12 @@
 
 ### Існуючі API функції
 
+- `receiptsApi.parse(file)` → `Promise<ParsedReceiptDto>` (`src/api/receipts.api.ts`) — multipart FormData
+- `receiptsApi.getAll(page, limit)` → `Promise<ReceiptsListResponse>`
+- `receiptsApi.getOne(id)` → `Promise<Receipt>`
+- `receiptsApi.create(dto)` → `Promise<Receipt>`
+- `receiptsApi.update(id, dto)` → `Promise<Receipt>`
+- `receiptsApi.remove(id)` → `Promise<void>`
 - `itemCategoriesApi.getAll()` → `Promise<ItemCategory[]>` (`src/api/item-categories.api.ts`)
 - `itemCategoriesApi.create(dto)` → `Promise<ItemCategory>`
 - `itemCategoriesApi.update(id, dto)` → `Promise<ItemCategory>`
@@ -115,6 +126,7 @@
 
 ### Існуючі Types
 
+- **Receipt, ReceiptItem, ReceiptsListResponse, CreateReceiptDto, UpdateReceiptDto, ParsedReceiptDto, ParsedItem** (`src/types/receipt.types.ts`)
 - **ItemCategory, CreateItemCategoryDto, UpdateItemCategoryDto, RemoveItemCategoryResponse** (`src/types/item-category.types.ts`)
 - **TransactionCategory, CreateTransactionCategoryDto, UpdateTransactionCategoryDto** (`src/types/transaction-category.types.ts`)
 - **PaymentMethod, CreatePaymentMethodDto, UpdatePaymentMethodDto** (`src/types/payment-method.types.ts`) — без type поля
