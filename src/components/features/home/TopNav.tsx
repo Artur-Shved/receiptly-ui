@@ -32,15 +32,6 @@ export function TopNav({ onLogoutClick }: TopNavProps) {
         <Link href="/home" className={navClass(pathname === '/home')}>
           Головна
         </Link>
-        <Link href="/home/stores" className={navClass(pathname === '/home/stores')}>
-          Магазини
-        </Link>
-        <Link
-          href="/home/payment-methods"
-          className={navClass(pathname === '/home/payment-methods')}
-        >
-          Оплата
-        </Link>
         <Link href="#" className={navClass(false)}>
           Статистика
         </Link>

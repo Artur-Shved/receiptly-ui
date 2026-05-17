@@ -5,10 +5,12 @@
 
 ---
 
-## Оновлено: 2026-05-17 — Auth Module
+## Оновлено: 2026-05-17 — Settings Module (Rework)
 
 ### Існуючі Pages
 
+- `/settings/stores` — `app/settings/stores/page.tsx` — управління магазинами (системні read-only з lock icon, власні: modal edit + delete з orange banner якщо receiptsCount > 0)
+- `/settings/payment-methods` — `app/settings/payment-methods/page.tsx` — управління методами оплати (modal create/edit з TypeTileGrid 2×2, no delete)
 - `/welcome` — `app/welcome/page.tsx` — стартовий екран (Register / Login кнопки)
 - `/register` — `app/register/page.tsx` — форма реєстрації (4 поля, password strength, 409 handling)
 - `/login` — `app/login/page.tsx` — форма входу (rate limit 3 спроби → 30с блокування)
@@ -16,6 +18,7 @@
 - `/forgot-password/sent` — `app/forgot-password/sent/page.tsx` — підтвердження відправки
 - `/reset-password` — `app/reset-password/page.tsx` — форма нового пароля (читає ?token= з URL)
 - `/home` — `app/home/page.tsx` — головний екран (TopNav, статистика, empty state, logout modal)
+- `/settings/*` — `app/settings/layout.tsx` — shared settings layout (TopNav + SettingsSidebar + logout modal)
 - `/` → redirect до `/welcome`
 
 ---
@@ -43,11 +46,20 @@
   Темна ліва панель з лого і підзаголовком Receiptly
 
 - **TopNav** (`src/components/features/home/TopNav.tsx`)
-  Props: onLogoutClick() — top navigation bar з лого, nav links, avatar dropdown
+  Props: onLogoutClick() — top navigation bar з лого, nav links (Головна, Статистика), avatar dropdown
+
+- **SettingsSidebar** (`src/components/features/settings/SettingsSidebar.tsx`)
+  Sidebar for /settings/* routes. Sections: "Довідники" (Магазини, Методи оплати, Категорії транзакцій, Категорії товарів) + "Акаунт" (Профіль). Active item highlighted via usePathname().
 
 ---
 
 ### Існуючі Hooks
+
+- **usePaymentMethods()** → `{ methods, isLoading, error, createMethod, updateMethod }` (`src/hooks/usePaymentMethods.ts`)
+  Для: управління методами оплати. List sorted by name після кожної операції.
+
+- **useStores()** → `{ stores, isLoading, error, createStore, updateStore, removeStore }` (`src/hooks/useStores.ts`)
+  Для: управління магазинами. createStore/updateStore повертають `{ error? }`, removeStore — `{ receiptsCount?, error? }`
 
 - **useRegister()** → `{ register, isLoading, error, setError }` (`src/hooks/useAuth.ts`)
   Для: реєстрації нового користувача
@@ -68,6 +80,13 @@
 
 ### Існуючі API функції
 
+- `paymentMethodsApi.getAll()` → `Promise<PaymentMethod[]>` (`src/api/payment-methods.api.ts`)
+- `paymentMethodsApi.create(dto)` → `Promise<PaymentMethod>`
+- `paymentMethodsApi.update(id, dto)` → `Promise<PaymentMethod>`
+- `storesApi.getAll()` → `Promise<Store[]>` (`src/api/stores.api.ts`)
+- `storesApi.create(dto)` → `Promise<Store>`
+- `storesApi.update(id, dto)` → `Promise<Store>`
+- `storesApi.remove(id)` → `Promise<DeleteStoreResponse>`
 - `authApi.register(dto)` → `Promise<AuthResponse>` (`src/api/auth.api.ts`)
 - `authApi.login(dto)` → `Promise<AuthResponse>`
 - `authApi.logout()` → `Promise<void>`
@@ -79,6 +98,8 @@
 
 ### Існуючі Types
 
+- **PaymentMethod, PaymentMethodType, PAYMENT_METHOD_TYPE_LABELS, CreatePaymentMethodDto, UpdatePaymentMethodDto** (`src/types/payment-method.types.ts`)
+- **Store, CreateStoreDto, UpdateStoreDto, DeleteStoreResponse** (`src/types/store.types.ts`)
 - **RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, AuthResponse** (`src/types/auth.types.ts`)
 - **ApiError** (`src/types/api.types.ts`) — extends Error, має status: number
 
@@ -115,6 +136,6 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
 - Access token — in-memory (module-level var в client.ts), втрачається при refresh сторінки
 - Refresh token — httpOnly cookie (встановлює BE), автоматично підхоплюється через credentials:include
 - При 401 → automatic silent refresh → retry (в apiClient, 1 спроба)
-- Next.js middleware (middleware.ts) перевіряє наявність refreshToken cookie для /home
+- Next.js middleware (middleware.ts) перевіряє наявність refreshToken cookie для /home та /settings/*
 - Next.js App Router: всі інтерактивні компоненти мають 'use client'
 - useSearchParams() завжди в Suspense boundary
