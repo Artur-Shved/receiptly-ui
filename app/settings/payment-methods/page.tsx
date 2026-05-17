@@ -5,6 +5,7 @@ import {
   Plus,
   CreditCard,
   Pencil,
+  Trash2,
   X,
   WifiOff,
 } from 'lucide-react';
@@ -199,14 +200,96 @@ function EditModal({ method, onClose, onUpdate }: EditModalProps) {
   );
 }
 
+// ─── Delete modal ──────────────────────────────────────────────────────────────
+
+interface DeleteModalProps {
+  method: PaymentMethod;
+  onClose: () => void;
+  onDelete: (id: string) => Promise<{ error?: string }>;
+}
+
+function DeleteModal({ method, onClose, onDelete }: DeleteModalProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    setIsLoading(true);
+    setDeleteError(null);
+    const result = await onDelete(method.id);
+    setIsLoading(false);
+    if (result.error) {
+      setDeleteError(result.error);
+    } else {
+      onClose();
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-[400px] rounded-xl bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-[16px] font-medium">Видалити метод оплати?</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-[#F7F7F7] hover:text-[#1a1a1a]"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <p className="mb-5 text-[13px] leading-[1.5] text-gray-500">
+          Метод{' '}
+          <span className="font-medium text-[#1a1a1a]">«{method.name}»</span>{' '}
+          буде видалено. Цю дію не можна скасувати.
+        </p>
+
+        {/* Delete error */}
+        {deleteError && (
+          <p className="mb-4 rounded-md bg-[#FCEBEB] px-3 py-2 text-[13px] text-[#A32D2D]">
+            Не вдалось видалити. Спробуйте ще раз.
+          </p>
+        )}
+
+        {/* Footer */}
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" fullWidth={false} onClick={onClose}>
+            Скасувати
+          </Button>
+          <Button
+            variant="danger"
+            fullWidth={false}
+            isLoading={isLoading}
+            icon={<Trash2 size={14} />}
+            onClick={handleDelete}
+            className="py-2 px-[14px] text-[13px]"
+          >
+            Видалити
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Payment method row ────────────────────────────────────────────────────────
 
 interface PaymentMethodRowProps {
   method: PaymentMethod;
   onEdit: () => void;
+  onDelete: () => void;
 }
 
-function PaymentMethodRow({ method, onEdit }: PaymentMethodRowProps) {
+function PaymentMethodRow({ method, onEdit, onDelete }: PaymentMethodRowProps) {
   return (
     <div className="group flex items-center gap-3 border-b border-[#e5e7eb] px-4 py-3 last:border-b-0">
       {/* Icon */}
@@ -222,14 +305,21 @@ function PaymentMethodRow({ method, onEdit }: PaymentMethodRowProps) {
         <span className="text-[14px] text-[#1a1a1a]">{method.name}</span>
       </div>
 
-      {/* Edit button — hover reveal */}
+      {/* Action buttons — hover reveal */}
       <div className="flex gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
         <button
           type="button"
           onClick={onEdit}
           className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#F7F7F7] hover:text-[#1a1a1a]"
         >
-          <Pencil size={14} />
+          <Pencil size={15} />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#FCEBEB] hover:text-[#A32D2D]"
+        >
+          <Trash2 size={15} />
         </button>
       </div>
     </div>
@@ -239,9 +329,10 @@ function PaymentMethodRow({ method, onEdit }: PaymentMethodRowProps) {
 // ─── Main page ─────────────────────────────────────────────────────────────────
 
 export default function PaymentMethodsPage() {
-  const { methods, isLoading, error, createMethod, updateMethod } = usePaymentMethods();
+  const { methods, isLoading, error, createMethod, updateMethod, removeMethod } = usePaymentMethods();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null);
+  const [deletingMethod, setDeletingMethod] = useState<PaymentMethod | null>(null);
 
   return (
     <div>
@@ -311,6 +402,7 @@ export default function PaymentMethodsPage() {
               key={method.id}
               method={method}
               onEdit={() => setEditingMethod(method)}
+              onDelete={() => setDeletingMethod(method)}
             />
           ))}
         </div>
@@ -329,6 +421,14 @@ export default function PaymentMethodsPage() {
           method={editingMethod}
           onClose={() => setEditingMethod(null)}
           onUpdate={updateMethod}
+        />
+      )}
+
+      {deletingMethod && (
+        <DeleteModal
+          method={deletingMethod}
+          onClose={() => setDeletingMethod(null)}
+          onDelete={removeMethod}
         />
       )}
     </div>

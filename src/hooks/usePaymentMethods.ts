@@ -63,5 +63,18 @@ export function usePaymentMethods() {
     [],
   );
 
-  return { methods, isLoading, error, createMethod, updateMethod };
+  const removeMethod = useCallback(
+    async (id: string): Promise<{ error?: string }> => {
+      try {
+        await paymentMethodsApi.remove(id);
+        setMethods((prev) => prev.filter((m) => m.id !== id));
+        return {};
+      } catch (err) {
+        return { error: (err as ApiError).message ?? 'Помилка' };
+      }
+    },
+    [],
+  );
+
+  return { methods, isLoading, error, createMethod, updateMethod, removeMethod };
 }

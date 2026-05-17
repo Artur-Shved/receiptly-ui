@@ -16,4 +16,7 @@ export const paymentMethodsApi = {
   /** PATCH /payment-methods/:id — patch name */
   update: (id: string, dto: UpdatePaymentMethodDto) =>
     apiClient.patch<PaymentMethod>(`/payment-methods/${id}`, dto),
+
+  /** DELETE /payment-methods/:id — remove method */
+  remove: (id: string): Promise<void> => apiClient.delete(`/payment-methods/${id}`),
 };
