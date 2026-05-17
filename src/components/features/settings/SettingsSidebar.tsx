@@ -28,7 +28,7 @@ const SECTIONS: SidebarSection[] = [
       { icon: <Store size={16} />, label: 'Магазини', href: '/settings/stores' },
       { icon: <CreditCard size={16} />, label: 'Методи оплати', href: '/settings/payment-methods' },
       { icon: <Tag size={16} />, label: 'Категорії транзакцій', href: '/settings/transaction-categories' },
-      { icon: <ShoppingBasket size={16} />, label: 'Категорії товарів', href: '#' },
+      { icon: <ShoppingBasket size={16} />, label: 'Категорії товарів', href: '/settings/item-categories' },
     ],
   },
   {
