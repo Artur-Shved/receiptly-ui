@@ -13,7 +13,7 @@ export const paymentMethodsApi = {
   create: (dto: CreatePaymentMethodDto) =>
     apiClient.post<PaymentMethod>('/payment-methods', dto),
 
-  /** PATCH /payment-methods/:id — patch name and/or type */
+  /** PATCH /payment-methods/:id — patch name */
   update: (id: string, dto: UpdatePaymentMethodDto) =>
     apiClient.patch<PaymentMethod>(`/payment-methods/${id}`, dto),
 };

@@ -4,146 +4,25 @@ import { useState } from 'react';
 import {
   Plus,
   CreditCard,
-  Banknote,
-  Smartphone,
-  MoreHorizontal,
   Pencil,
   X,
   WifiOff,
-  CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/src/components/ui/Button';
 import { Input } from '@/src/components/ui/Input';
 import { usePaymentMethods } from '@/src/hooks/usePaymentMethods';
-import { PaymentMethodType } from '@/src/types/payment-method.types';
 import type { PaymentMethod } from '@/src/types/payment-method.types';
-
-// ─── Type config ───────────────────────────────────────────────────────────────
-
-interface TypeConfig {
-  label: string;
-  icon: React.ReactNode;
-  iconBg: string;
-  iconColor: string;
-  badgeBg: string;
-  badgeText: string;
-}
-
-const TYPE_CONFIG: Record<PaymentMethodType, TypeConfig> = {
-  [PaymentMethodType.CARD]: {
-    label: 'Банківська картка',
-    icon: <CreditCard size={16} />,
-    iconBg: '#E6F1FB',
-    iconColor: '#185FA5',
-    badgeBg: '#E6F1FB',
-    badgeText: '#0C447C',
-  },
-  [PaymentMethodType.CASH]: {
-    label: 'Готівка',
-    icon: <Banknote size={16} />,
-    iconBg: '#EAF3DE',
-    iconColor: '#3B6D11',
-    badgeBg: '#EAF3DE',
-    badgeText: '#27500A',
-  },
-  [PaymentMethodType.DIGITAL]: {
-    label: 'Цифровий гаманець',
-    icon: <Smartphone size={16} />,
-    iconBg: '#FAEEDA',
-    iconColor: '#854F0B',
-    badgeBg: '#FAEEDA',
-    badgeText: '#633806',
-  },
-  [PaymentMethodType.OTHER]: {
-    label: 'Інше',
-    icon: <MoreHorizontal size={16} />,
-    iconBg: '#EEEDFE',
-    iconColor: '#534AB7',
-    badgeBg: '#EEEDFE',
-    badgeText: '#3C3489',
-  },
-};
-
-const TYPE_ORDER: PaymentMethodType[] = [
-  PaymentMethodType.CARD,
-  PaymentMethodType.CASH,
-  PaymentMethodType.DIGITAL,
-  PaymentMethodType.OTHER,
-];
-
-// ─── Type tile grid ────────────────────────────────────────────────────────────
-
-interface TypeTileGridProps {
-  selected: PaymentMethodType | null;
-  onSelect: (type: PaymentMethodType) => void;
-  hasError: boolean;
-}
-
-function TypeTileGrid({ selected, onSelect, hasError }: TypeTileGridProps) {
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      {TYPE_ORDER.map((type) => {
-        const cfg = TYPE_CONFIG[type];
-        const isSelected = selected === type;
-
-        return (
-          <button
-            key={type}
-            type="button"
-            onClick={() => onSelect(type)}
-            className={[
-              'flex cursor-pointer items-center gap-[10px] rounded-md border px-3 py-[10px] text-left text-[13px] transition-colors',
-              isSelected
-                ? 'border-[#1a1a1a] bg-[#F7F7F7]'
-                : hasError
-                  ? 'border-[#A32D2D]'
-                  : 'border-[#e5e7eb]',
-            ].join(' ')}
-          >
-            {/* Type icon */}
-            <span
-              className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-[6px]"
-              style={{ backgroundColor: cfg.iconBg, color: cfg.iconColor }}
-            >
-              <span style={{ display: 'flex' }}>
-                {type === PaymentMethodType.CARD && <CreditCard size={14} />}
-                {type === PaymentMethodType.CASH && <Banknote size={14} />}
-                {type === PaymentMethodType.DIGITAL && <Smartphone size={14} />}
-                {type === PaymentMethodType.OTHER && <MoreHorizontal size={14} />}
-              </span>
-            </span>
-
-            {/* Label */}
-            <span className="flex-1 text-[#1a1a1a]">{cfg.label}</span>
-
-            {/* Check circle */}
-            <CheckCircle2
-              size={16}
-              className={[
-                'flex-shrink-0 transition-opacity',
-                isSelected ? 'opacity-100' : 'opacity-0',
-              ].join(' ')}
-              style={{ color: '#1a1a1a' }}
-            />
-          </button>
-        );
-      })}
-    </div>
-  );
-}
 
 // ─── Modals ───────────────────────────────────────────────────────────────────
 
 interface CreateModalProps {
   onClose: () => void;
-  onCreate: (name: string, type: PaymentMethodType) => Promise<{ error?: string }>;
+  onCreate: (name: string) => Promise<{ error?: string }>;
 }
 
 function CreateModal({ onClose, onCreate }: CreateModalProps) {
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
-  const [selectedType, setSelectedType] = useState<PaymentMethodType | null>(null);
-  const [typeError, setTypeError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const validateName = (): boolean => {
@@ -156,14 +35,10 @@ function CreateModal({ onClose, onCreate }: CreateModalProps) {
   };
 
   const handleSubmit = async () => {
-    const nameValid = validateName();
-    const typeValid = selectedType !== null;
-
-    if (!typeValid) setTypeError(true);
-    if (!nameValid || !typeValid) return;
+    if (!validateName()) return;
 
     setIsLoading(true);
-    const result = await onCreate(name.trim(), selectedType!);
+    const result = await onCreate(name.trim());
     setIsLoading(false);
 
     if (result.error) {
@@ -196,7 +71,7 @@ function CreateModal({ onClose, onCreate }: CreateModalProps) {
         </div>
 
         {/* Name field */}
-        <div className="mb-4">
+        <div className="mb-5">
           <label className="mb-1 block text-[12px] text-gray-500">Назва</label>
           <Input
             value={name}
@@ -207,22 +82,6 @@ function CreateModal({ onClose, onCreate }: CreateModalProps) {
             isFilled={name.trim().length > 0 && !nameError}
           />
           <p className="mt-1 text-right text-[12px] text-[#9ca3af]">{name.length} / 100</p>
-        </div>
-
-        {/* Type field */}
-        <div className="mb-5">
-          <label className="mb-2 block text-[12px] text-gray-500">Тип</label>
-          <TypeTileGrid
-            selected={selectedType}
-            onSelect={(type) => {
-              setSelectedType(type);
-              setTypeError(false);
-            }}
-            hasError={typeError}
-          />
-          {typeError && (
-            <p className="mt-1 text-[12px] text-[#A32D2D]">Виберіть тип</p>
-          )}
         </div>
 
         {/* Footer */}
@@ -244,17 +103,16 @@ interface EditModalProps {
   onClose: () => void;
   onUpdate: (
     id: string,
-    dto: { name?: string; type?: PaymentMethodType },
+    dto: { name?: string },
   ) => Promise<{ error?: string }>;
 }
 
 function EditModal({ method, onClose, onUpdate }: EditModalProps) {
   const [name, setName] = useState(method.name);
   const [nameError, setNameError] = useState<string | null>(null);
-  const [selectedType, setSelectedType] = useState<PaymentMethodType>(method.type);
   const [isLoading, setIsLoading] = useState(false);
 
-  const hasChanged = name.trim() !== method.name || selectedType !== method.type;
+  const hasChanged = name.trim() !== method.name;
 
   const validateName = (): boolean => {
     if (!name.trim()) {
@@ -272,9 +130,8 @@ function EditModal({ method, onClose, onUpdate }: EditModalProps) {
     }
     if (!validateName()) return;
 
-    const dto: { name?: string; type?: PaymentMethodType } = {};
+    const dto: { name?: string } = {};
     if (name.trim() !== method.name) dto.name = name.trim();
-    if (selectedType !== method.type) dto.type = selectedType;
 
     setIsLoading(true);
     const result = await onUpdate(method.id, dto);
@@ -310,7 +167,7 @@ function EditModal({ method, onClose, onUpdate }: EditModalProps) {
         </div>
 
         {/* Name field */}
-        <div className="mb-4">
+        <div className="mb-5">
           <label className="mb-1 block text-[12px] text-gray-500">Назва</label>
           <Input
             value={name}
@@ -321,16 +178,6 @@ function EditModal({ method, onClose, onUpdate }: EditModalProps) {
             isFilled={name.trim().length > 0 && !nameError}
           />
           <p className="mt-1 text-right text-[12px] text-[#9ca3af]">{name.length} / 100</p>
-        </div>
-
-        {/* Type field */}
-        <div className="mb-5">
-          <label className="mb-2 block text-[12px] text-gray-500">Тип</label>
-          <TypeTileGrid
-            selected={selectedType}
-            onSelect={setSelectedType}
-            hasError={false}
-          />
         </div>
 
         {/* Footer */}
@@ -360,30 +207,19 @@ interface PaymentMethodRowProps {
 }
 
 function PaymentMethodRow({ method, onEdit }: PaymentMethodRowProps) {
-  const cfg = TYPE_CONFIG[method.type];
-
   return (
     <div className="group flex items-center gap-3 border-b border-[#e5e7eb] px-4 py-3 last:border-b-0">
       {/* Icon */}
       <div
         className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
-        style={{ backgroundColor: cfg.iconBg, color: cfg.iconColor }}
+        style={{ backgroundColor: '#F7F7F7', color: '#6b7280' }}
       >
-        {method.type === PaymentMethodType.CARD && <CreditCard size={16} />}
-        {method.type === PaymentMethodType.CASH && <Banknote size={16} />}
-        {method.type === PaymentMethodType.DIGITAL && <Smartphone size={16} />}
-        {method.type === PaymentMethodType.OTHER && <MoreHorizontal size={16} />}
+        <CreditCard size={20} />
       </div>
 
       {/* Info */}
       <div className="flex flex-1 flex-col gap-0.5">
         <span className="text-[14px] text-[#1a1a1a]">{method.name}</span>
-        <span
-          className="inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[11px]"
-          style={{ backgroundColor: cfg.badgeBg, color: cfg.badgeText }}
-        >
-          {cfg.label}
-        </span>
       </div>
 
       {/* Edit button — hover reveal */}

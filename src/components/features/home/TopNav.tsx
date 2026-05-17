@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Receipt, Camera, User, LogOut } from 'lucide-react';
+import { Receipt, Camera, User, LogOut, Settings } from 'lucide-react';
 import { Button } from '@/src/components/ui/Button';
 import { useLogout } from '@/src/hooks/useAuth';
 
@@ -69,6 +69,14 @@ export function TopNav({ onLogoutClick }: TopNavProps) {
                 >
                   <User size={16} />
                   Профіль
+                </Link>
+                <Link
+                  href="/settings/stores"
+                  className="flex items-center gap-2 px-4 py-3 text-[14px] text-gray-700 hover:bg-[#F7F7F7]"
+                  onClick={() => setDropdownOpen(false)}
+                >
+                  <Settings size={16} />
+                  Налаштування
                 </Link>
                 <div className="border-t border-[#e5e7eb]" />
                 <button

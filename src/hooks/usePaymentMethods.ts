@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { paymentMethodsApi } from '@/src/api/payment-methods.api';
 import { ApiError } from '@/src/types/api.types';
-import type { PaymentMethod, PaymentMethodType } from '@/src/types/payment-method.types';
+import type { PaymentMethod } from '@/src/types/payment-method.types';
 
 export function usePaymentMethods() {
   const [methods, setMethods] = useState<PaymentMethod[]>([]);
@@ -26,9 +26,9 @@ export function usePaymentMethods() {
   useEffect(() => { load(); }, [load]);
 
   const createMethod = useCallback(
-    async (name: string, type: PaymentMethodType): Promise<{ error?: string }> => {
+    async (name: string): Promise<{ error?: string }> => {
       try {
-        const created = await paymentMethodsApi.create({ name, type });
+        const created = await paymentMethodsApi.create({ name });
         setMethods((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
         return {};
       } catch (err) {
@@ -44,7 +44,7 @@ export function usePaymentMethods() {
   const updateMethod = useCallback(
     async (
       id: string,
-      dto: { name?: string; type?: PaymentMethodType },
+      dto: { name?: string },
     ): Promise<{ error?: string }> => {
       try {
         const updated = await paymentMethodsApi.update(id, dto);
