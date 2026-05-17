@@ -5,12 +5,14 @@
 
 ---
 
-## Оновлено: 2026-05-17 — Settings Module (Rework)
+## Оновлено: 2026-05-17 — Item Categories Module
 
 ### Існуючі Pages
 
-- `/settings/stores` — `app/settings/stores/page.tsx` — управління магазинами (системні read-only з lock icon, власні: modal edit + delete з orange banner якщо receiptsCount > 0)
-- `/settings/payment-methods` — `app/settings/payment-methods/page.tsx` — управління методами оплати (modal create/edit з TypeTileGrid 2×2, no delete)
+- `/settings/stores` — `app/settings/stores/page.tsx` — управління магазинами (системні locked, власні: modal edit + delete з orange banner якщо receiptsCount > 0)
+- `/settings/payment-methods` — `app/settings/payment-methods/page.tsx` — modal CRUD з delete (нейтральна CreditCard іконка, без type)
+- `/settings/transaction-categories` — `app/settings/transaction-categories/page.tsx` — системні locked, власні pencil-only (no delete до V2)
+- `/settings/item-categories` — `app/settings/item-categories/page.tsx` — системні locked, власні pencil+trash; DeleteModal Variant A/B (itemsCount > 0 → orange warning)
 - `/welcome` — `app/welcome/page.tsx` — стартовий екран (Register / Login кнопки)
 - `/register` — `app/register/page.tsx` — форма реєстрації (4 поля, password strength, 409 handling)
 - `/login` — `app/login/page.tsx` — форма входу (rate limit 3 спроби → 30с блокування)
@@ -46,7 +48,7 @@
   Темна ліва панель з лого і підзаголовком Receiptly
 
 - **TopNav** (`src/components/features/home/TopNav.tsx`)
-  Props: onLogoutClick() — top navigation bar з лого, nav links (Головна, Статистика), avatar dropdown
+  Props: onLogoutClick() — top navigation bar з лого, nav links (Головна, Статистика), avatar dropdown (Профіль, Налаштування → /settings/stores, Вийти)
 
 - **SettingsSidebar** (`src/components/features/settings/SettingsSidebar.tsx`)
   Sidebar for /settings/* routes. Sections: "Довідники" (Магазини, Методи оплати, Категорії транзакцій, Категорії товарів) + "Акаунт" (Профіль). Active item highlighted via usePathname().
@@ -55,7 +57,13 @@
 
 ### Існуючі Hooks
 
-- **usePaymentMethods()** → `{ methods, isLoading, error, createMethod, updateMethod }` (`src/hooks/usePaymentMethods.ts`)
+- **useItemCategories()** → `{ categories, isLoading, error, createCategory, updateCategory, removeCategory, removeConfirmedCategory }` (`src/hooks/useItemCategories.ts`)
+  Для: управління категоріями товарів. removeCategory → `{ itemsCount?, error? }`, removeConfirmedCategory → `{ error? }`
+
+- **useTransactionCategories()** → `{ categories, isLoading, error, createCategory, updateCategory }` (`src/hooks/useTransactionCategories.ts`)
+  Для: управління категоріями транзакцій.
+
+- **usePaymentMethods()** → `{ methods, isLoading, error, createMethod, updateMethod, removeMethod }` (`src/hooks/usePaymentMethods.ts`)
   Для: управління методами оплати. List sorted by name після кожної операції.
 
 - **useStores()** → `{ stores, isLoading, error, createStore, updateStore, removeStore }` (`src/hooks/useStores.ts`)
@@ -80,9 +88,18 @@
 
 ### Існуючі API функції
 
+- `itemCategoriesApi.getAll()` → `Promise<ItemCategory[]>` (`src/api/item-categories.api.ts`)
+- `itemCategoriesApi.create(dto)` → `Promise<ItemCategory>`
+- `itemCategoriesApi.update(id, dto)` → `Promise<ItemCategory>`
+- `itemCategoriesApi.remove(id)` → `Promise<RemoveItemCategoryResponse>` (повертає `{ itemsCount }`)
+- `itemCategoriesApi.removeConfirmed(id)` → `Promise<void>`
+- `transactionCategoriesApi.getAll()` → `Promise<TransactionCategory[]>` (`src/api/transaction-categories.api.ts`)
+- `transactionCategoriesApi.create(dto)` → `Promise<TransactionCategory>`
+- `transactionCategoriesApi.update(id, dto)` → `Promise<TransactionCategory>`
 - `paymentMethodsApi.getAll()` → `Promise<PaymentMethod[]>` (`src/api/payment-methods.api.ts`)
 - `paymentMethodsApi.create(dto)` → `Promise<PaymentMethod>`
 - `paymentMethodsApi.update(id, dto)` → `Promise<PaymentMethod>`
+- `paymentMethodsApi.remove(id)` → `Promise<void>`
 - `storesApi.getAll()` → `Promise<Store[]>` (`src/api/stores.api.ts`)
 - `storesApi.create(dto)` → `Promise<Store>`
 - `storesApi.update(id, dto)` → `Promise<Store>`
@@ -98,7 +115,9 @@
 
 ### Існуючі Types
 
-- **PaymentMethod, PaymentMethodType, PAYMENT_METHOD_TYPE_LABELS, CreatePaymentMethodDto, UpdatePaymentMethodDto** (`src/types/payment-method.types.ts`)
+- **ItemCategory, CreateItemCategoryDto, UpdateItemCategoryDto, RemoveItemCategoryResponse** (`src/types/item-category.types.ts`)
+- **TransactionCategory, CreateTransactionCategoryDto, UpdateTransactionCategoryDto** (`src/types/transaction-category.types.ts`)
+- **PaymentMethod, CreatePaymentMethodDto, UpdatePaymentMethodDto** (`src/types/payment-method.types.ts`) — без type поля
 - **Store, CreateStoreDto, UpdateStoreDto, DeleteStoreResponse** (`src/types/store.types.ts`)
 - **RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, AuthResponse** (`src/types/auth.types.ts`)
 - **ApiError** (`src/types/api.types.ts`) — extends Error, має status: number
