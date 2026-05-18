@@ -60,7 +60,6 @@ function CreateModal({ onClose, onCreate }: CreateModalProps) {
         className="w-[400px] rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-[16px] font-medium">Новий магазин</h2>
           <button
@@ -72,7 +71,6 @@ function CreateModal({ onClose, onCreate }: CreateModalProps) {
           </button>
         </div>
 
-        {/* Name field */}
         <div className="mb-5">
           <label className="mb-1 block text-[12px] text-gray-500">Назва магазину</label>
           <Input
@@ -87,7 +85,6 @@ function CreateModal({ onClose, onCreate }: CreateModalProps) {
           <p className="mt-1 text-right text-[12px] text-[#9ca3af]">{name.length} / 100</p>
         </div>
 
-        {/* Footer */}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" fullWidth={false} onClick={onClose}>
             Скасувати
@@ -149,7 +146,6 @@ function EditModal({ store, onClose, onUpdate }: EditModalProps) {
         className="w-[400px] rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-[16px] font-medium">Редагувати магазин</h2>
           <button
@@ -161,7 +157,6 @@ function EditModal({ store, onClose, onUpdate }: EditModalProps) {
           </button>
         </div>
 
-        {/* Name field */}
         <div className="mb-5">
           <label className="mb-1 block text-[12px] text-gray-500">Назва магазину</label>
           <Input
@@ -175,7 +170,6 @@ function EditModal({ store, onClose, onUpdate }: EditModalProps) {
           <p className="mt-1 text-right text-[12px] text-[#9ca3af]">{name.length} / 100</p>
         </div>
 
-        {/* Footer */}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" fullWidth={false} onClick={onClose}>
             Скасувати
@@ -196,24 +190,25 @@ function EditModal({ store, onClose, onUpdate }: EditModalProps) {
 
 interface DeleteModalProps {
   store: StoreType;
+  receiptsCount: number;
   onClose: () => void;
-  onDelete: (id: string) => Promise<{ receiptsCount?: number; error?: string }>;
-  onDeleteSuccess: (receiptsCount: number, storeName: string) => void;
+  onConfirm: (id: string) => Promise<{ error?: string }>;
 }
 
-function DeleteModal({ store, onClose, onDelete, onDeleteSuccess }: DeleteModalProps) {
+function DeleteModal({ store, receiptsCount, onClose, onConfirm }: DeleteModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const handleDelete = async () => {
+  const isVariantB = receiptsCount > 0;
+
+  const handleConfirm = async () => {
     setIsLoading(true);
     setDeleteError(null);
-    const result = await onDelete(store.id);
+    const result = await onConfirm(store.id);
     setIsLoading(false);
     if (result.error) {
       setDeleteError(result.error);
     } else {
-      onDeleteSuccess(result.receiptsCount ?? 0, store.name);
       onClose();
     }
   };
@@ -228,7 +223,6 @@ function DeleteModal({ store, onClose, onDelete, onDeleteSuccess }: DeleteModalP
         className="w-[400px] rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-[16px] font-medium">Видалити магазин?</h2>
           <button
@@ -240,21 +234,35 @@ function DeleteModal({ store, onClose, onDelete, onDeleteSuccess }: DeleteModalP
           </button>
         </div>
 
-        {/* Body text — always Variant A */}
+        {isVariantB && (
+          <div className="mb-4 flex items-start gap-2 rounded-md px-3 py-[10px]" style={{ backgroundColor: '#FAEEDA', color: '#854F0B' }}>
+            <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+            <span className="text-[13px]">
+              Цей магазин використовується у{' '}
+              <span className="font-medium">{receiptsCount}</span> чеках. Після видалення чеки
+              збережуться, але магазин у них буде позначений як видалений.
+            </span>
+          </div>
+        )}
+
         <p className="mb-5 text-[13px] leading-[1.5] text-gray-500">
-          Магазин{' '}
-          <span className="font-medium text-[#1a1a1a]">«{store.name}»</span>{' '}
-          буде видалено. Цю дію не можна скасувати.
+          {isVariantB ? (
+            'Хочете продовжити?'
+          ) : (
+            <>
+              Магазин{' '}
+              <span className="font-medium text-[#1a1a1a]">«{store.name}»</span>{' '}
+              буде видалено. Цю дію не можна скасувати.
+            </>
+          )}
         </p>
 
-        {/* Delete error */}
         {deleteError && (
           <p className="mb-4 rounded-md bg-[#FCEBEB] px-3 py-2 text-[13px] text-[#A32D2D]">
             Не вдалось видалити. Спробуйте ще раз.
           </p>
         )}
 
-        {/* Footer */}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" fullWidth={false} onClick={onClose}>
             Скасувати
@@ -264,10 +272,10 @@ function DeleteModal({ store, onClose, onDelete, onDeleteSuccess }: DeleteModalP
             fullWidth={false}
             isLoading={isLoading}
             icon={<Trash2 size={14} />}
-            onClick={handleDelete}
+            onClick={handleConfirm}
             className="py-2 px-[14px] text-[13px]"
           >
-            Видалити
+            {isVariantB ? 'Все одно видалити' : 'Видалити'}
           </Button>
         </div>
       </div>
@@ -287,7 +295,6 @@ interface StoreRowProps {
 function StoreRow({ store, isSystem, onEdit, onDelete }: StoreRowProps) {
   return (
     <div className="group flex items-center gap-3 border-b border-[#e5e7eb] px-4 py-[11px] last:border-b-0">
-      {/* Icon */}
       <div
         className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg"
         style={
@@ -299,10 +306,8 @@ function StoreRow({ store, isSystem, onEdit, onDelete }: StoreRowProps) {
         <Store size={15} />
       </div>
 
-      {/* Name */}
       <span className="flex-1 text-[14px] text-[#1a1a1a]">{store.name}</span>
 
-      {/* Badge / meta */}
       {isSystem ? (
         <span className="rounded-full bg-[#E6F1FB] px-2 py-0.5 text-[11px] text-[#0C447C]">
           Системний
@@ -311,7 +316,6 @@ function StoreRow({ store, isSystem, onEdit, onDelete }: StoreRowProps) {
         <span className="text-[12px] text-[#9ca3af]">Додано вами</span>
       )}
 
-      {/* Action buttons — hover reveal */}
       <div className="flex gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
         {isSystem ? (
           <button
@@ -368,19 +372,14 @@ function SectionBlock({ title, count, children }: SectionBlockProps) {
 
 // ─── Main page ─────────────────────────────────────────────────────────────────
 
-interface PostDeleteWarning {
-  storeName: string;
-  receiptsCount: number;
-}
-
 export default function StoresPage() {
-  const { stores, isLoading, error, createStore, updateStore, removeStore } = useStores();
+  const { stores, isLoading, error, createStore, updateStore, checkStore, removeConfirmedStore } = useStores();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingStore, setEditingStore] = useState<StoreType | null>(null);
   const [deletingStore, setDeletingStore] = useState<StoreType | null>(null);
-  const [postDeleteWarning, setPostDeleteWarning] = useState<PostDeleteWarning | null>(null);
+  const [deleteCheck, setDeleteCheck] = useState<{ receiptsCount: number } | null>(null);
 
   const systemStores = useMemo(
     () =>
@@ -398,15 +397,20 @@ export default function StoresPage() {
     [stores, searchQuery],
   );
 
-  const handleDeleteSuccess = (receiptsCount: number, storeName: string) => {
-    if (receiptsCount > 0) {
-      setPostDeleteWarning({ storeName, receiptsCount });
-    }
+  const handleDeleteClick = async (store: StoreType) => {
+    const result = await checkStore(store.id);
+    if (result.error) return;
+    setDeletingStore(store);
+    setDeleteCheck({ receiptsCount: result.receiptsCount ?? 0 });
+  };
+
+  const handleDeleteClose = () => {
+    setDeletingStore(null);
+    setDeleteCheck(null);
   };
 
   return (
     <div>
-      {/* Content header */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-[18px] font-medium text-[#1a1a1a]">Магазини</h1>
@@ -422,7 +426,6 @@ export default function StoresPage() {
         </Button>
       </div>
 
-      {/* Network error banner */}
       {error && (
         <div className="mt-4 flex items-center gap-2 rounded-md bg-[#FCEBEB] px-3 py-[10px] text-[#A32D2D]">
           <WifiOff size={16} className="flex-shrink-0" />
@@ -439,19 +442,6 @@ export default function StoresPage() {
         </div>
       )}
 
-      {/* Post-delete warning banner */}
-      {postDeleteWarning && (
-        <div className="mt-4 flex items-start gap-2 rounded-md bg-[#FAEEDA] px-3 py-[10px] text-[#854F0B]">
-          <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
-          <span className="text-[13px]">
-            Цей магазин використовувався у{' '}
-            <span className="font-medium">{postDeleteWarning.receiptsCount}</span> чеках. Після
-            видалення чеки збережуться, але магазин у них буде позначений як видалений.
-          </span>
-        </div>
-      )}
-
-      {/* Search row */}
       <div className="mt-4" style={{ width: '260px' }}>
         <div className="relative">
           <Search
@@ -474,7 +464,6 @@ export default function StoresPage() {
         </div>
       ) : (
         <>
-          {/* System stores section */}
           <div className="mt-5">
             <SectionBlock title="Системні" count={systemStores.length}>
               {systemStores.length === 0 ? (
@@ -495,7 +484,6 @@ export default function StoresPage() {
             </SectionBlock>
           </div>
 
-          {/* User stores section */}
           <div className="mt-4">
             <SectionBlock title="Мої магазини" count={userStores.length}>
               {userStores.length === 0 ? (
@@ -510,7 +498,7 @@ export default function StoresPage() {
                     store={store}
                     isSystem={false}
                     onEdit={() => setEditingStore(store)}
-                    onDelete={() => setDeletingStore(store)}
+                    onDelete={() => handleDeleteClick(store)}
                   />
                 ))
               )}
@@ -519,7 +507,6 @@ export default function StoresPage() {
         </>
       )}
 
-      {/* Modals */}
       {showCreateModal && (
         <CreateModal
           onClose={() => setShowCreateModal(false)}
@@ -535,12 +522,12 @@ export default function StoresPage() {
         />
       )}
 
-      {deletingStore && (
+      {deletingStore && deleteCheck !== null && (
         <DeleteModal
           store={deletingStore}
-          onClose={() => setDeletingStore(null)}
-          onDelete={removeStore}
-          onDeleteSuccess={handleDeleteSuccess}
+          receiptsCount={deleteCheck.receiptsCount}
+          onClose={handleDeleteClose}
+          onConfirm={removeConfirmedStore}
         />
       )}
     </div>

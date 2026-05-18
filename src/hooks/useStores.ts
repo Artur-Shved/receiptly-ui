@@ -58,12 +58,27 @@ export function useStores() {
     [],
   );
 
-  const removeStore = useCallback(
+  const checkStore = useCallback(
     async (id: string): Promise<{ receiptsCount?: number; error?: string }> => {
       try {
-        const result = await storesApi.remove(id);
-        setStores((prev) => prev.filter((s) => s.id !== id));
+        const result = await storesApi.check(id);
         return { receiptsCount: result.receiptsCount };
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 403) {
+          return { error: 'Не можна видалити цей магазин' };
+        }
+        return { error: 'Помилка перевірки' };
+      }
+    },
+    [],
+  );
+
+  const removeConfirmedStore = useCallback(
+    async (id: string): Promise<{ error?: string }> => {
+      try {
+        await storesApi.removeConfirmed(id);
+        setStores((prev) => prev.filter((s) => s.id !== id));
+        return {};
       } catch (err) {
         if (err instanceof ApiError && err.status === 403) {
           return { error: 'Не можна видалити цей магазин' };
@@ -74,5 +89,5 @@ export function useStores() {
     [],
   );
 
-  return { stores, isLoading, error, createStore, updateStore, removeStore };
+  return { stores, isLoading, error, createStore, updateStore, checkStore, removeConfirmedStore };
 }

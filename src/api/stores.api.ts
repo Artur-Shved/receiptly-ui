@@ -12,6 +12,9 @@ export const storesApi = {
   update: (id: string, dto: UpdateStoreDto) =>
     apiClient.patch<Store>(`/stores/${id}`, dto),
 
-  /** DELETE /stores/:id — returns receiptsCount for client warning */
-  remove: (id: string) => apiClient.delete<DeleteStoreResponse>(`/stores/${id}`),
+  /** DELETE /stores/:id — pre-delete check, returns receiptsCount without deleting */
+  check: (id: string) => apiClient.delete<DeleteStoreResponse>(`/stores/${id}`),
+
+  /** DELETE /stores/:id/confirm — actually deletes the store */
+  removeConfirmed: (id: string) => apiClient.delete<Record<string, never>>(`/stores/${id}/confirm`),
 };

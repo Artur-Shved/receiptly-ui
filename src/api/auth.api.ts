@@ -5,6 +5,7 @@ import type {
   ForgotPasswordDto,
   ResetPasswordDto,
   AuthResponse,
+  UserProfile,
 } from '@/src/types/auth.types';
 
 /**
@@ -33,4 +34,7 @@ export const authApi = {
   /** POST /auth/reset-password */
   resetPassword: (dto: ResetPasswordDto) =>
     apiClient.post<AuthResponse>('/auth/reset-password', dto),
+
+  /** GET /auth/me — returns the authenticated user's profile */
+  me: () => apiClient.get<UserProfile>('/auth/me'),
 };
