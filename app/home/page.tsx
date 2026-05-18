@@ -135,7 +135,8 @@ export default function HomePage() {
     <div className="flex min-h-screen flex-col">
       <TopNav onLogoutClick={() => setShowLogoutModal(true)} />
 
-      <main className="mx-auto w-full max-w-[1024px] flex-1 px-6 py-8">
+      <main className="flex-1 bg-[#F7F7F7]">
+        <div className="mx-auto w-full max-w-[1024px] px-6 py-8">
         {/* Greeting */}
         <div className="mb-6">
           <h1 className="text-[22px] font-medium">
@@ -245,6 +246,7 @@ export default function HomePage() {
             })}
           </div>
         )}
+        </div>
       </main>
 
       {showLogoutModal && (
