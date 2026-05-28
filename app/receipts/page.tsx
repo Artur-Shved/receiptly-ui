@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { TopNav } from '@/src/components/features/home/TopNav';
 import { Button } from '@/src/components/ui/Button';
+import { SearchableStoreSelect } from '@/src/components/features/receipts/SearchableStoreSelect';
 import { useLogout } from '@/src/hooks/useAuth';
 import { useReceipts } from '@/src/hooks/useReceipts';
 import { useStores } from '@/src/hooks/useStores';
@@ -118,7 +119,7 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
       onClick={onCancel}
     >
       <div className="w-[400px] rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <h2 className="mb-2 text-[18px] font-medium">Вийти з акаунту?</h2>
+        <h2 className="mb-2 text-[18px] font-medium text-[#1a1a1a]">Вийти з акаунту?</h2>
         <p className="mb-6 text-[14px] text-gray-500">Вас буде перенаправлено на стартовий екран. Дані збережуться.</p>
         <div className="flex justify-end gap-2">
           <Button variant="secondary" fullWidth={false} onClick={onCancel}>Скасувати</Button>
@@ -153,7 +154,7 @@ function DetailsModal({ receipt, onClose, onEdit, onDelete }: DetailsModalProps)
         {/* Header */}
         <div className="flex items-start justify-between border-b border-[#e5e7eb] p-5">
           <div>
-            <h2 className="text-[16px] font-medium">{storeName} — {formatFullDate(receipt.receiptDate)}</h2>
+            <h2 className="text-[16px] font-medium text-[#1a1a1a]">{storeName} — {formatFullDate(receipt.receiptDate)}</h2>
             <p className="mt-0.5 text-[12px] text-[#9ca3af]">Чек #{receipt.id.slice(0, 8)}</p>
           </div>
           <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-[#F7F7F7] hover:text-[#1a1a1a]">
@@ -275,7 +276,7 @@ function ItemSubModal({ item, itemCategories, onSave, onCancel }: ItemSubModalPr
     <div className="fixed inset-0 z-[60] flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} onClick={onCancel}>
       <div className="w-[380px] rounded-xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-[15px] font-medium">{item ? 'Редагувати товар' : 'Додати товар'}</h3>
+          <h3 className="text-[15px] font-medium text-[#1a1a1a]">{item ? 'Редагувати товар' : 'Додати товар'}</h3>
           <button type="button" onClick={onCancel} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-[#F7F7F7]"><X size={15} /></button>
         </div>
 
@@ -285,18 +286,18 @@ function ItemSubModal({ item, itemCategories, onSave, onCancel }: ItemSubModalPr
           <div>
             <label className="mb-1 block text-[12px] text-gray-500">Назва товару</label>
             <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-              className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]" />
+              className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#9ca3af] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-[12px] text-gray-500">Кількість</label>
               <input type="number" min="0" step="0.001" value={quantity} onChange={(e) => setQuantity(e.target.value)}
-                className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]" />
+                className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#9ca3af] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]" />
             </div>
             <div>
               <label className="mb-1 block text-[12px] text-gray-500">Одиниця</label>
               <select value={unit} onChange={(e) => setUnit(e.target.value)}
-                className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]">
+                className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] text-[#1a1a1a] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]">
                 {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
               </select>
             </div>
@@ -304,7 +305,7 @@ function ItemSubModal({ item, itemCategories, onSave, onCancel }: ItemSubModalPr
           <div>
             <label className="mb-1 block text-[12px] text-gray-500">Ціна за одиницю</label>
             <input type="number" min="0" step="0.01" value={pricePerUnit} onChange={(e) => setPricePerUnit(e.target.value)}
-              className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]" />
+              className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#9ca3af] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]" />
           </div>
           <div>
             <label className="mb-1 block text-[12px] text-gray-500">Категорія</label>
@@ -339,14 +340,14 @@ interface EditModalProps {
 }
 
 function EditModal({ receipt, onClose, onSave }: EditModalProps) {
-  const { stores } = useStores();
+  const { stores, createStore } = useStores();
   const { methods } = usePaymentMethods();
   const { categories: txCategories } = useTransactionCategories();
   const { categories: itemCategories } = useItemCategories();
 
-  const [storeId, setStoreId] = useState(receipt.storeId);
-  const [paymentMethodId, setPaymentMethodId] = useState(receipt.paymentMethodId);
-  const [transactionCategoryId, setTransactionCategoryId] = useState(receipt.transactionCategoryId);
+  const [storeId, setStoreId] = useState<string | null>(receipt.storeId);
+  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(receipt.paymentMethodId);
+  const [transactionCategoryId, setTransactionCategoryId] = useState<string | null>(receipt.transactionCategoryId);
   const [receiptDate, setReceiptDate] = useState(toDateInputValue(receipt.receiptDate));
   const [items, setItems] = useState<EditableItem[]>(
     (receipt.items ?? []).map((it) => ({
@@ -379,7 +380,9 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
     if (items.length === 0) return;
     setIsLoading(true); setError(null);
     const result = await onSave(receipt.id, {
-      storeId, paymentMethodId, transactionCategoryId,
+      storeId,
+      paymentMethodId,
+      transactionCategoryId,
       receiptDate,
       items: items.map(({ _key: _k, ...rest }) => rest),
     });
@@ -395,7 +398,7 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
       <div className="w-[640px] max-w-full rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#e5e7eb] p-5">
-          <h2 className="text-[16px] font-medium">Редагувати чек</h2>
+          <h2 className="text-[16px] font-medium text-[#1a1a1a]">Редагувати чек</h2>
           <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-[#F7F7F7]"><X size={16} /></button>
         </div>
 
@@ -403,23 +406,44 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
           {error && <p className="mb-4 rounded-md bg-[#FCEBEB] px-3 py-2 text-[13px] text-[#A32D2D]">{error}</p>}
 
           <div className="mb-5 grid grid-cols-2 gap-4">
-            {([
-              { label: 'Магазин', value: storeId, onChange: setStoreId, options: stores.map((s) => ({ id: s.id, name: s.name })) },
-              { label: 'Метод оплати', value: paymentMethodId, onChange: setPaymentMethodId, options: methods.map((m) => ({ id: m.id, name: m.name })) },
-              { label: 'Категорія транзакції', value: transactionCategoryId, onChange: setTransactionCategoryId, options: txCategories.map((c) => ({ id: c.id, name: c.name })) },
-            ] as { label: string; value: string; onChange: (v: string) => void; options: { id: string; name: string }[] }[]).map(({ label, value, onChange, options }) => (
-              <div key={label}>
-                <label className="mb-1 block text-[12px] text-gray-500">{label}</label>
-                <select value={value} onChange={(e) => onChange(e.target.value)}
-                  className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]">
-                  {options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-                </select>
-              </div>
-            ))}
+            <div>
+              <label className="mb-1 block text-[12px] text-gray-500">Магазин</label>
+              <SearchableStoreSelect
+                value={storeId}
+                onChange={setStoreId}
+                stores={stores}
+                onCreate={async (name) => {
+                  const { store } = await createStore(name);
+                  return store ?? null;
+                }}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-[12px] text-gray-500">Метод оплати</label>
+              <select
+                value={paymentMethodId ?? ''}
+                onChange={(e) => setPaymentMethodId(e.target.value || null)}
+                className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] text-[#1a1a1a] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
+              >
+                <option value="">Без методу</option>
+                {methods.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-[12px] text-gray-500">Категорія транзакції</label>
+              <select
+                value={transactionCategoryId ?? ''}
+                onChange={(e) => setTransactionCategoryId(e.target.value || null)}
+                className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] text-[#1a1a1a] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
+              >
+                <option value="">Без категорії</option>
+                {txCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
             <div>
               <label className="mb-1 block text-[12px] text-gray-500">Дата покупки</label>
               <input type="date" value={receiptDate} onChange={(e) => setReceiptDate(e.target.value)}
-                className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]" />
+                className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#9ca3af] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]" />
             </div>
           </div>
 
@@ -500,7 +524,7 @@ function DeleteModal({ receipt, onClose, onDelete }: DeleteModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
       <div className="w-[400px] rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[16px] font-medium">Видалити чек?</h2>
+          <h2 className="text-[16px] font-medium text-[#1a1a1a]">Видалити чек?</h2>
           <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-[#F7F7F7]"><X size={16} /></button>
         </div>
 
@@ -643,7 +667,7 @@ export default function ReceiptsPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Пошук за магазином..."
-                className="h-[38px] w-full rounded-lg border border-[#e5e7eb] bg-white pl-[32px] pr-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
+                className="h-[38px] w-full rounded-lg border border-[#e5e7eb] bg-white pl-[32px] pr-3 text-[13px] text-[#1a1a1a] placeholder:text-[#9ca3af] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
               />
             </div>
 
@@ -742,7 +766,7 @@ export default function ReceiptsPage() {
 
           {/* Loading */}
           {isLoading && receipts.length === 0 && (
-            <div className="flex justify-center py-16 text-[13px] text-gray-400">Завантаження...</div>
+            <div className="flex justify-center py-16 text-[13px] text-gray-500">Завантаження...</div>
           )}
 
           {/* Empty state */}
@@ -751,7 +775,7 @@ export default function ReceiptsPage() {
               <div className="mb-4 flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#F7F7F7]">
                 <Receipt size={24} color="#9ca3af" />
               </div>
-              <h3 className="mb-2 text-[16px] font-medium">Жодного чеку</h3>
+              <h3 className="mb-2 text-[16px] font-medium text-[#1a1a1a]">Жодного чеку</h3>
               <p className="mb-6 max-w-xs text-center text-[14px] text-gray-500">
                 Додайте перший чек щоб почати відстежувати витрати
               </p>

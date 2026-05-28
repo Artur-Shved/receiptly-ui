@@ -26,11 +26,11 @@ export function useStores() {
   useEffect(() => { load(); }, [load]);
 
   const createStore = useCallback(
-    async (name: string): Promise<{ error?: string }> => {
+    async (name: string): Promise<{ store?: Store; error?: string }> => {
       try {
         const created = await storesApi.create({ name });
         setStores((prev) => [...prev, created]);
-        return {};
+        return { store: created };
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {
           return { error: 'Магазин з такою назвою вже існує' };

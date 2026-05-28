@@ -5,6 +5,18 @@
 
 ---
 
+## Оновлено: 2026-05-28 — Receipts: optional meta + inline store create
+
+### Зміни
+- `Receipt`, `CreateReceiptDto`, `UpdateReceiptDto`: `storeId`, `paymentMethodId`, `transactionCategoryId` тепер `string | null`. Relation objects (`store`, `paymentMethod`, `transactionCategory`) також nullable.
+- Новий компонент **SearchableStoreSelect** (`src/components/features/receipts/SearchableStoreSelect.tsx`) — combobox з пошуком, clearable, inline-create опцією "+ Додати «X» як новий магазин" при відсутності точного матчу.
+- `useStores().createStore` тепер повертає `{ store?: Store; error?: string }` (раніше було `{ error? }`).
+- `/receipts/upload` Step 2: поля Магазин / Метод оплати / Категорія транзакції зроблено опціональними. Магазин використовує SearchableStoreSelect, інші — `<select>` з опцією "Без X". Прибрано блокування "Заповніть усі поля".
+- `/receipts` EditModal: SearchableStoreSelect для магазину, селекти з "Без X" опцією для решти; null-safe state.
+- Список чеків + DetailsModal вже null-safe (відображають "—" для null).
+
+---
+
 ## Оновлено: 2026-05-17 — Receipts Module
 
 ### Існуючі Pages

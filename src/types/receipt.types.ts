@@ -13,18 +13,18 @@ export interface ReceiptItem {
 export interface Receipt {
   id: string;
   userId: string;
-  storeId: string;
-  paymentMethodId: string;
-  transactionCategoryId: string;
+  storeId: string | null;
+  paymentMethodId: string | null;
+  transactionCategoryId: string | null;
   totalAmount: number;
   currency: string;
   status: string;
   receiptDate: string;
   createdAt: string;
   updatedAt: string;
-  store?: { id: string; name: string };
-  paymentMethod?: { id: string; name: string };
-  transactionCategory?: { id: string; name: string };
+  store?: { id: string; name: string } | null;
+  paymentMethod?: { id: string; name: string } | null;
+  transactionCategory?: { id: string; name: string } | null;
   items?: ReceiptItem[];
 }
 
@@ -46,18 +46,18 @@ export interface CreateReceiptItemDto {
 }
 
 export interface CreateReceiptDto {
-  storeId: string;
-  paymentMethodId: string;
-  transactionCategoryId: string;
+  storeId?: string | null;
+  paymentMethodId?: string | null;
+  transactionCategoryId?: string | null;
   receiptDate: string;
   currency?: string;
   items: CreateReceiptItemDto[];
 }
 
 export interface UpdateReceiptDto {
-  storeId?: string;
-  paymentMethodId?: string;
-  transactionCategoryId?: string;
+  storeId?: string | null;
+  paymentMethodId?: string | null;
+  transactionCategoryId?: string | null;
   receiptDate?: string;
   currency?: string;
   items?: CreateReceiptItemDto[];

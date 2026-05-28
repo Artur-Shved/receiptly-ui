@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { TopNav } from '@/src/components/features/home/TopNav';
 import { Button } from '@/src/components/ui/Button';
+import { SearchableStoreSelect } from '@/src/components/features/receipts/SearchableStoreSelect';
 import { useLogout } from '@/src/hooks/useAuth';
 import { useStores } from '@/src/hooks/useStores';
 import { usePaymentMethods } from '@/src/hooks/usePaymentMethods';
@@ -390,7 +391,7 @@ export default function ReceiptUploadPage() {
   const { logout } = useLogout();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const { stores } = useStores();
+  const { stores, createStore } = useStores();
   const { methods } = usePaymentMethods();
   const { categories: txCategories } = useTransactionCategories();
   const { categories: itemCategories } = useItemCategories();
@@ -408,11 +409,10 @@ export default function ReceiptUploadPage() {
   const [parseResult, setParseResult] = useState<ParsedReceiptDto | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
 
-  // Step 2 - form
-  const [storeId, setStoreId] = useState('');
-  const [paymentMethodId, setPaymentMethodId] = useState('');
-  const [transactionCategoryId, setTransactionCategoryId] = useState('');
-  const [metaError, setMetaError] = useState<string | null>(null);
+  // Step 2 - form (all optional)
+  const [storeId, setStoreId] = useState<string | null>(null);
+  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
+  const [transactionCategoryId, setTransactionCategoryId] = useState<string | null>(null);
   const [waitingForParse, setWaitingForParse] = useState(false);
 
   // Step 3
@@ -493,12 +493,7 @@ export default function ReceiptUploadPage() {
 
   // ── Step 2 "Далі" ───────────────────────────────────────────────────────────
 
-  const handleStep2Next = async () => {
-    if (!storeId || !paymentMethodId || !transactionCategoryId) {
-      setMetaError('Заповніть усі поля');
-      return;
-    }
-    setMetaError(null);
+  const handleStep2Next = () => {
     if (isParsing) {
       setWaitingForParse(true);
       return;
@@ -509,13 +504,9 @@ export default function ReceiptUploadPage() {
   useEffect(() => {
     if (waitingForParse && !isParsing) {
       setWaitingForParse(false);
-      if (!storeId || !paymentMethodId || !transactionCategoryId) {
-        setMetaError('Заповніть усі поля');
-        return;
-      }
       setStep(3);
     }
-  }, [waitingForParse, isParsing, storeId, paymentMethodId, transactionCategoryId]);
+  }, [waitingForParse, isParsing]);
 
   // ── Step 3 submit ────────────────────────────────────────────────────────────
 
@@ -525,9 +516,9 @@ export default function ReceiptUploadPage() {
     setConfirmError(null);
     try {
       const receipt = await receiptsApi.create({
-        storeId,
-        paymentMethodId,
-        transactionCategoryId,
+        storeId: storeId,
+        paymentMethodId: paymentMethodId,
+        transactionCategoryId: transactionCategoryId,
         receiptDate: parseResult?.receiptDate ?? todayDateString(),
         currency: parsedCurrency,
         items: items.map(({ _key: _k, ...rest }) => rest),
@@ -551,10 +542,9 @@ export default function ReceiptUploadPage() {
     setIsParsing(false);
     setParseResult(null);
     setParseError(null);
-    setStoreId('');
-    setPaymentMethodId('');
-    setTransactionCategoryId('');
-    setMetaError(null);
+    setStoreId(null);
+    setPaymentMethodId(null);
+    setTransactionCategoryId(null);
     setItems([]);
     setConfirmCancel(false);
     setConfirmError(null);
@@ -666,36 +656,30 @@ export default function ReceiptUploadPage() {
 
               {/* Right: form */}
               <div style={{ width: 300, flexShrink: 0 }}>
-                <h2 className="mb-4 text-[16px] font-medium">Деталі чеку</h2>
-
-                {metaError && (
-                  <p className="mb-3 rounded-md bg-[#FCEBEB] px-3 py-2 text-[13px] text-[#A32D2D]">
-                    {metaError}
-                  </p>
-                )}
+                <h2 className="mb-1 text-[16px] font-medium">Деталі чеку</h2>
+                <p className="mb-4 text-[12px] text-[#9ca3af]">Усі поля опціональні</p>
 
                 <div className="space-y-3">
                   <div>
                     <label className="mb-1 block text-[12px] text-gray-500">Магазин</label>
-                    <select
+                    <SearchableStoreSelect
                       value={storeId}
-                      onChange={(e) => setStoreId(e.target.value)}
-                      className="h-[38px] w-full rounded-lg border border-[#e5e7eb] bg-white px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
-                    >
-                      <option value="">Оберіть магазин</option>
-                      {stores.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
+                      onChange={setStoreId}
+                      stores={stores}
+                      onCreate={async (name) => {
+                        const { store } = await createStore(name);
+                        return store ?? null;
+                      }}
+                    />
                   </div>
                   <div>
                     <label className="mb-1 block text-[12px] text-gray-500">Метод оплати</label>
                     <select
-                      value={paymentMethodId}
-                      onChange={(e) => setPaymentMethodId(e.target.value)}
+                      value={paymentMethodId ?? ''}
+                      onChange={(e) => setPaymentMethodId(e.target.value || null)}
                       className="h-[38px] w-full rounded-lg border border-[#e5e7eb] bg-white px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
                     >
-                      <option value="">Оберіть метод</option>
+                      <option value="">Без методу</option>
                       {methods.map((m) => (
                         <option key={m.id} value={m.id}>{m.name}</option>
                       ))}
@@ -704,11 +688,11 @@ export default function ReceiptUploadPage() {
                   <div>
                     <label className="mb-1 block text-[12px] text-gray-500">Категорія транзакції</label>
                     <select
-                      value={transactionCategoryId}
-                      onChange={(e) => setTransactionCategoryId(e.target.value)}
+                      value={transactionCategoryId ?? ''}
+                      onChange={(e) => setTransactionCategoryId(e.target.value || null)}
                       className="h-[38px] w-full rounded-lg border border-[#e5e7eb] bg-white px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
                     >
-                      <option value="">Оберіть категорію</option>
+                      <option value="">Без категорії</option>
                       {txCategories.map((c) => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
