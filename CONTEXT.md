@@ -5,6 +5,34 @@
 
 ---
 
+## Оновлено: 2026-05-30 — Statistics Phase 2 (filters + donut + breakdowns + drill-downs)
+
+### Нові компоненти `src/components/features/statistics/`
+- **FiltersModal** — мультивибір (Магазин / Категорія транзакції / Категорія товару) з чекбоксами; Скинути / Скасувати / Застосувати(N)
+- **FiltersTags + FilterButton** — chip-row з активними фільтрами біля кнопки "Фільтри (N)"; видалення окремого фільтра або всіх
+- **DonutChart** (Recharts PieChart + Cell + Tooltip + ResponsiveContainer) — by-transaction-category з центральним total; легенда справа; click → drill-down
+- **BreakdownSection** — переюзана секція для 3 розбивок (категорії / магазини / товари); top-5 з progress bar + percentage
+- **DrillDownModal** — 3 типи (transaction-category / store / item-category); таблиця з різними колонками залежно від kind; "Показано N з total"
+
+### Залежність
+- Додано `recharts ^3.8.1`
+
+### Оновлений `app/statistics/page.tsx`
+- Підвантажує 5 endpoints паралельно (summary, timeline, by-tx-cat, by-store, by-item-cat)
+- Filter modal + active tags row
+- Donut + Timeline у 1fr/1.6fr grid
+- 3 BreakdownSection у grid-cols-3
+- Drill-down state — клік на сегмент donut або рядок breakdown → DrillDownModal
+- Empty state branching: "немає даних" vs "немає для фільтрів" (з кнопкою reset)
+
+### Новий API methods (`statisticsApi`)
+- `getReceiptsByTransactionCategory(categoryId, filters)`
+- `getReceiptsByStore(storeId, filters)`
+- `getItemsByItemCategory(itemCategoryId, filters)`
+- `NULL_BUCKET_ID = 'none'` — sentinel для NULL category
+
+---
+
 ## Оновлено: 2026-05-30 — Statistics Phase 1 (мінімальний FE)
 
 ### Новий route: `/statistics`

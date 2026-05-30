@@ -4,7 +4,12 @@ import type {
   SummaryResponse,
   BreakdownResponse,
   TimelineResponse,
+  DrillDownResponse,
+  ReceiptDrillDownItem,
+  ItemDrillDownItem,
 } from '@/src/types/statistics.types';
+
+export const NULL_BUCKET_ID = 'none';
 
 function buildQuery(filters: StatisticsFilters): string {
   const params = new URLSearchParams();
@@ -36,4 +41,28 @@ export const statisticsApi = {
 
   getTimeline: (filters: StatisticsFilters): Promise<TimelineResponse> =>
     apiClient.get<TimelineResponse>(`/statistics/timeline?${buildQuery(filters)}`),
+
+  getReceiptsByTransactionCategory: (
+    categoryId: string | null,
+    filters: StatisticsFilters,
+  ): Promise<DrillDownResponse<ReceiptDrillDownItem>> =>
+    apiClient.get<DrillDownResponse<ReceiptDrillDownItem>>(
+      `/statistics/by-transaction-category/${categoryId ?? NULL_BUCKET_ID}/receipts?${buildQuery(filters)}`,
+    ),
+
+  getReceiptsByStore: (
+    storeId: string,
+    filters: StatisticsFilters,
+  ): Promise<DrillDownResponse<ReceiptDrillDownItem>> =>
+    apiClient.get<DrillDownResponse<ReceiptDrillDownItem>>(
+      `/statistics/by-store/${storeId}/receipts?${buildQuery(filters)}`,
+    ),
+
+  getItemsByItemCategory: (
+    itemCategoryId: string | null,
+    filters: StatisticsFilters,
+  ): Promise<DrillDownResponse<ItemDrillDownItem>> =>
+    apiClient.get<DrillDownResponse<ItemDrillDownItem>>(
+      `/statistics/by-item-category/${itemCategoryId ?? NULL_BUCKET_ID}/items?${buildQuery(filters)}`,
+    ),
 };

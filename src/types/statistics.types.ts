@@ -43,3 +43,26 @@ export interface TimelineResponse {
   granularity: Granularity;
   points: TimelinePoint[];
 }
+
+export interface ReceiptDrillDownItem {
+  id: string;
+  receiptDate: string;
+  totalAmount: number;
+  storeName?: string | null;
+  transactionCategoryName?: string | null;
+}
+
+export interface ItemDrillDownItem {
+  name: string;
+  storeName: string | null;
+  quantity: number;
+  unit: string | null;
+  pricePerUnit: number;
+  totalPrice: number;
+  receiptDate: string;
+}
+
+export interface DrillDownResponse<T> {
+  items: T[];
+  total: number;
+}

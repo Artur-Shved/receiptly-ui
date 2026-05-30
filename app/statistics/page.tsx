@@ -1,19 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { WifiOff, Receipt, Camera } from 'lucide-react';
 import Link from 'next/link';
 import { TopNav } from '@/src/components/features/home/TopNav';
 import { Button } from '@/src/components/ui/Button';
 import { useLogout } from '@/src/hooks/useAuth';
+import { useStores } from '@/src/hooks/useStores';
+import { useTransactionCategories } from '@/src/hooks/useTransactionCategories';
+import { useItemCategories } from '@/src/hooks/useItemCategories';
 import { PeriodTabs, presetRange, type PeriodKey } from '@/src/components/features/statistics/PeriodTabs';
 import { StatsGrid } from '@/src/components/features/statistics/StatsGrid';
 import { TimelineChart } from '@/src/components/features/statistics/TimelineChart';
+import { DonutChart } from '@/src/components/features/statistics/DonutChart';
+import { BreakdownSection } from '@/src/components/features/statistics/BreakdownSection';
+import { FiltersModal } from '@/src/components/features/statistics/FiltersModal';
+import { FiltersTags, FilterButton } from '@/src/components/features/statistics/FiltersTags';
+import { DrillDownModal, type DrillKind } from '@/src/components/features/statistics/DrillDownModal';
 import { statisticsApi } from '@/src/api/statistics.api';
 import type {
   StatisticsFilters,
   SummaryResponse,
   TimelineResponse,
+  BreakdownResponse,
+  BreakdownItem,
 } from '@/src/types/statistics.types';
 import { ApiError } from '@/src/types/api.types';
 
@@ -40,43 +50,99 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
   );
 }
 
+interface ActiveFilters {
+  storeId: string[];
+  transactionCategoryId: string[];
+  itemCategoryId: string[];
+}
+
+const EMPTY_FILTERS: ActiveFilters = {
+  storeId: [],
+  transactionCategoryId: [],
+  itemCategoryId: [],
+};
+
 export default function StatisticsPage() {
   const { logout } = useLogout();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  // Default: current month
+  const { stores } = useStores();
+  const { categories: txCategories } = useTransactionCategories();
+  const { categories: itemCategories } = useItemCategories();
+
+  // Period state
   const [period, setPeriod] = useState<PeriodKey>('month');
   const initialRange = presetRange('month');
   const [dateFrom, setDateFrom] = useState(initialRange.dateFrom);
   const [dateTo, setDateTo] = useState(initialRange.dateTo);
 
+  // Filter state
+  const [activeFilters, setActiveFilters] = useState<ActiveFilters>(EMPTY_FILTERS);
+  const [showFiltersModal, setShowFiltersModal] = useState(false);
+
+  // Data state
   const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [timeline, setTimeline] = useState<TimelineResponse | null>(null);
+  const [byTxCat, setByTxCat] = useState<BreakdownResponse | null>(null);
+  const [byStore, setByStore] = useState<BreakdownResponse | null>(null);
+  const [byItemCat, setByItemCat] = useState<BreakdownResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Drill-down state
+  const [drillDown, setDrillDown] = useState<{ kind: DrillKind; item: BreakdownItem } | null>(null);
+
+  const filters: StatisticsFilters = useMemo(
+    () => ({
+      dateFrom,
+      dateTo,
+      storeId: activeFilters.storeId.length ? activeFilters.storeId : undefined,
+      transactionCategoryId: activeFilters.transactionCategoryId.length
+        ? activeFilters.transactionCategoryId
+        : undefined,
+      itemCategoryId: activeFilters.itemCategoryId.length
+        ? activeFilters.itemCategoryId
+        : undefined,
+    }),
+    [dateFrom, dateTo, activeFilters],
+  );
+
   useEffect(() => {
-    const filters: StatisticsFilters = { dateFrom, dateTo };
     setIsLoading(true);
     setError(null);
     Promise.all([
       statisticsApi.getSummary(filters),
       statisticsApi.getTimeline(filters),
+      statisticsApi.getByTransactionCategory(filters),
+      statisticsApi.getByStore(filters),
+      statisticsApi.getByItemCategory(filters),
     ])
-      .then(([s, t]) => {
+      .then(([s, t, bt, bs, bi]) => {
         setSummary(s);
         setTimeline(t);
+        setByTxCat(bt);
+        setByStore(bs);
+        setByItemCat(bi);
       })
       .catch((err) => {
         setError(err instanceof ApiError ? err.message : 'Помилка завантаження');
       })
       .finally(() => setIsLoading(false));
-  }, [dateFrom, dateTo]);
+  }, [filters]);
 
   const handlePeriodChange = (next: PeriodKey, from: string, to: string) => {
     setPeriod(next);
     setDateFrom(from);
     setDateTo(to);
+  };
+
+  const totalFilterCount =
+    activeFilters.storeId.length +
+    activeFilters.transactionCategoryId.length +
+    activeFilters.itemCategoryId.length;
+
+  const handleRemoveTag = (kind: keyof ActiveFilters, id: string) => {
+    setActiveFilters((prev) => ({ ...prev, [kind]: prev[kind].filter((x) => x !== id) }));
   };
 
   const isEmpty = !isLoading && !error && summary !== null && summary.receiptsCount === 0;
@@ -95,13 +161,30 @@ export default function StatisticsPage() {
                 Аналіз витрат за обраний період
               </p>
             </div>
-            <PeriodTabs
-              period={period}
-              dateFrom={dateFrom}
-              dateTo={dateTo}
-              onChange={handlePeriodChange}
-            />
+            <div className="flex items-center gap-2">
+              <PeriodTabs
+                period={period}
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onChange={handlePeriodChange}
+              />
+              <FilterButton count={totalFilterCount} onClick={() => setShowFiltersModal(true)} />
+            </div>
           </div>
+
+          {/* Active filter tags */}
+          {totalFilterCount > 0 && (
+            <div className="mt-3">
+              <FiltersTags
+                filters={activeFilters}
+                stores={stores}
+                txCategories={txCategories}
+                itemCategories={itemCategories}
+                onRemove={handleRemoveTag}
+                onResetAll={() => setActiveFilters(EMPTY_FILTERS)}
+              />
+            </div>
+          )}
 
           {error && (
             <div className="mt-4 flex items-center gap-2 rounded-md bg-[#FCEBEB] px-3 py-[10px] text-[#A32D2D]">
@@ -119,7 +202,7 @@ export default function StatisticsPage() {
             </div>
           )}
 
-          {!error && isEmpty && (
+          {!error && isEmpty && totalFilterCount === 0 && (
             <div
               className="mt-6 flex flex-col items-center rounded-xl bg-white py-12"
               style={{ border: '0.5px solid #e5e7eb' }}
@@ -141,18 +224,90 @@ export default function StatisticsPage() {
             </div>
           )}
 
+          {!error && isEmpty && totalFilterCount > 0 && (
+            <div
+              className="mt-6 flex flex-col items-center rounded-xl bg-white py-12"
+              style={{ border: '0.5px solid #e5e7eb' }}
+            >
+              <p className="mb-2 text-[15px] font-medium text-[#1a1a1a]">
+                Немає даних для обраних фільтрів
+              </p>
+              <p className="mb-5 text-[13px] text-gray-500">
+                Спробуйте змінити або скинути фільтри
+              </p>
+              <Button
+                fullWidth={false}
+                variant="secondary"
+                onClick={() => setActiveFilters(EMPTY_FILTERS)}
+              >
+                Скинути фільтри
+              </Button>
+            </div>
+          )}
+
           {!error && !isEmpty && (
             <>
               <div className="mt-5">
                 <StatsGrid summary={summary} isLoading={isLoading} />
               </div>
-              <div className="mt-4">
+
+              <div className="mt-4 grid gap-4" style={{ gridTemplateColumns: '1fr 1.6fr' }}>
+                <DonutChart
+                  data={byTxCat?.items ?? null}
+                  totalAmount={byTxCat?.totalAmount ?? 0}
+                  isLoading={isLoading}
+                  onSegmentClick={(item) => setDrillDown({ kind: 'transaction-category', item })}
+                />
                 <TimelineChart data={timeline} isLoading={isLoading} />
+              </div>
+
+              <div className="mt-4 grid grid-cols-3 gap-4">
+                <BreakdownSection
+                  title="По категоріях"
+                  items={byTxCat?.items ?? null}
+                  isLoading={isLoading}
+                  countSuffix={(n) => `${n} чеків`}
+                  onItemClick={(item) => setDrillDown({ kind: 'transaction-category', item })}
+                />
+                <BreakdownSection
+                  title="По магазинах"
+                  items={byStore?.items ?? null}
+                  isLoading={isLoading}
+                  countSuffix={(n) => `${n} чеків`}
+                  onItemClick={(item) => setDrillDown({ kind: 'store', item })}
+                />
+                <BreakdownSection
+                  title="По товарах"
+                  items={byItemCat?.items ?? null}
+                  isLoading={isLoading}
+                  countSuffix={(n) => `${n} од.`}
+                  onItemClick={(item) => setDrillDown({ kind: 'item-category', item })}
+                />
               </div>
             </>
           )}
         </div>
       </main>
+
+      {showFiltersModal && (
+        <FiltersModal
+          initial={activeFilters}
+          onApply={(next) => {
+            setActiveFilters(next);
+            setShowFiltersModal(false);
+          }}
+          onClose={() => setShowFiltersModal(false)}
+        />
+      )}
+
+      {drillDown && (
+        <DrillDownModal
+          kind={drillDown.kind}
+          item={drillDown.item}
+          filters={filters}
+          onClose={() => setDrillDown(null)}
+        />
+      )}
 
       {showLogoutModal && (
         <LogoutModal
