@@ -145,7 +145,16 @@ export default function StatisticsPage() {
     setActiveFilters((prev) => ({ ...prev, [kind]: prev[kind].filter((x) => x !== id) }));
   };
 
-  const isEmpty = !isLoading && !error && summary !== null && summary.receiptsCount === 0;
+  // Show the onboarding empty state ONLY when the user has no receipts AND no
+  // filters are active. With active filters we keep the regular layout (with
+  // zeros / per-card empty placeholders) so the user can adjust the filters
+  // and see things update in place.
+  const showOnboardingEmpty =
+    !isLoading &&
+    !error &&
+    summary !== null &&
+    summary.receiptsCount === 0 &&
+    totalFilterCount === 0;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -202,7 +211,7 @@ export default function StatisticsPage() {
             </div>
           )}
 
-          {!error && isEmpty && totalFilterCount === 0 && (
+          {!error && showOnboardingEmpty && (
             <div
               className="mt-6 flex flex-col items-center rounded-xl bg-white py-12"
               style={{ border: '0.5px solid #e5e7eb' }}
@@ -224,28 +233,7 @@ export default function StatisticsPage() {
             </div>
           )}
 
-          {!error && isEmpty && totalFilterCount > 0 && (
-            <div
-              className="mt-6 flex flex-col items-center rounded-xl bg-white py-12"
-              style={{ border: '0.5px solid #e5e7eb' }}
-            >
-              <p className="mb-2 text-[15px] font-medium text-[#1a1a1a]">
-                Немає даних для обраних фільтрів
-              </p>
-              <p className="mb-5 text-[13px] text-gray-500">
-                Спробуйте змінити або скинути фільтри
-              </p>
-              <Button
-                fullWidth={false}
-                variant="secondary"
-                onClick={() => setActiveFilters(EMPTY_FILTERS)}
-              >
-                Скинути фільтри
-              </Button>
-            </div>
-          )}
-
-          {!error && !isEmpty && (
+          {!error && !showOnboardingEmpty && (
             <>
               <div className="mt-5">
                 <StatsGrid summary={summary} isLoading={isLoading} />
