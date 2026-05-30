@@ -13,6 +13,21 @@ export function getAccessToken(): string | null {
   return accessToken;
 }
 
+const AUTH_PATHS = [
+  '/welcome',
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+];
+
+function redirectToLogin(): void {
+  if (typeof window === 'undefined') return;
+  const path = window.location.pathname;
+  if (AUTH_PATHS.some((p) => path === p || path.startsWith(`${p}/`))) return;
+  window.location.href = '/login';
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -49,6 +64,7 @@ async function request<T>(
       // refresh failed
     }
     setAccessToken(null);
+    redirectToLogin();
     throw new ApiError(401, 'Unauthorized');
   }
 

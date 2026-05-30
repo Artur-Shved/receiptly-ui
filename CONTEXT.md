@@ -178,7 +178,7 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api
 - Бізнес логіка в hooks/, не в компонентах
 - Access token — in-memory (module-level var в client.ts), втрачається при refresh сторінки
 - Refresh token — httpOnly cookie (встановлює BE), автоматично підхоплюється через credentials:include
-- При 401 → automatic silent refresh → retry (в apiClient, 1 спроба)
+- При 401 → automatic silent refresh → retry (в apiClient, 1 спроба). Якщо refresh теж провалився → редірект `window.location.href = '/login'` (skipped якщо вже на auth-сторінці)
 - Next.js middleware (middleware.ts) перевіряє наявність refreshToken cookie для /home та /settings/*
 - Next.js App Router: всі інтерактивні компоненти мають 'use client'
 - useSearchParams() завжди в Suspense boundary
