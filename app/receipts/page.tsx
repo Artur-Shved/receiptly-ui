@@ -16,6 +16,7 @@ import {
 import { TopNav } from '@/src/components/features/home/TopNav';
 import { Button } from '@/src/components/ui/Button';
 import { SearchableStoreSelect } from '@/src/components/features/receipts/SearchableStoreSelect';
+import { AddReceiptChoiceModal } from '@/src/components/features/receipts/AddReceiptChoiceModal';
 import { useLogout } from '@/src/hooks/useAuth';
 import { useReceipts } from '@/src/hooks/useReceipts';
 import { useStores } from '@/src/hooks/useStores';
@@ -606,6 +607,7 @@ export default function ReceiptsPage() {
   const [detailsReceipt, setDetailsReceipt] = useState<ReceiptType | null>(null);
   const [editReceipt, setEditReceipt] = useState<ReceiptType | null>(null);
   const [deleteReceipt, setDeleteReceipt] = useState<ReceiptType | null>(null);
+  const [showAddChoice, setShowAddChoice] = useState(false);
 
   const dateRef = useRef<HTMLDivElement>(null);
   const catRef = useRef<HTMLDivElement>(null);
@@ -779,9 +781,9 @@ export default function ReceiptsPage() {
               <p className="mb-6 max-w-xs text-center text-[14px] text-gray-500">
                 Додайте перший чек щоб почати відстежувати витрати
               </p>
-              <Link href="/receipts/upload">
-                <Button fullWidth={false}>Додати чек</Button>
-              </Link>
+              <Button fullWidth={false} onClick={() => setShowAddChoice(true)}>
+                Додати чек
+              </Button>
             </div>
           )}
 
@@ -904,6 +906,8 @@ export default function ReceiptsPage() {
       {deleteReceipt && (
         <DeleteModal receipt={deleteReceipt} onClose={() => setDeleteReceipt(null)} onDelete={handleDelete} />
       )}
+
+      {showAddChoice && <AddReceiptChoiceModal onClose={() => setShowAddChoice(false)} />}
     </div>
   );
 }

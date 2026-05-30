@@ -5,6 +5,21 @@
 
 ---
 
+## Оновлено: 2026-05-30 — Manual Receipt Entry (Flow C)
+
+### Зміни
+- Новий компонент **AddReceiptChoiceModal** (`src/components/features/receipts/AddReceiptChoiceModal.tsx`) — modal з двома картками "Сфотографувати чек" / "Ввести вручну". Відкривається при натисканні "Додати чек" в TopNav або з empty state `/receipts`.
+- Нова сторінка `/receipts/upload/manual` — повний manual flow:
+  - Step 1: Магазин (SearchableStoreSelect) + Метод оплати + Категорія транзакції (всі опціональні)
+  - Step 2: Дата покупки + список товарів (empty state + items table) + sub-modal додавання/редагування товару + manual total override з sum-mismatch warning
+  - Step 3: Success екран (з summary chips)
+  - Cancel-with-data confirmation, sum-mismatch confirm modal
+- `TopNav` — кнопка "Додати чек" тепер відкриває AddReceiptChoiceModal замість прямого переходу.
+- `/receipts` empty state — кнопка "Додати чек" відкриває AddReceiptChoiceModal.
+- BE без змін — той самий `POST /receipts` для обох flows.
+
+---
+
 ## Оновлено: 2026-05-28 — Receipts: optional meta + inline store create
 
 ### Зміни

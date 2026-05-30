@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Receipt, Camera, User, LogOut, Settings } from 'lucide-react';
 import { Button } from '@/src/components/ui/Button';
-import { useLogout } from '@/src/hooks/useAuth';
+import { AddReceiptChoiceModal } from '@/src/components/features/receipts/AddReceiptChoiceModal';
 
 interface TopNavProps {
   onLogoutClick: () => void;
@@ -19,11 +19,12 @@ function navClass(active: boolean) {
 
 export function TopNav({ onLogoutClick }: TopNavProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [choiceOpen, setChoiceOpen] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
 
   return (
     <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[#e5e7eb] bg-white px-6">
+      {choiceOpen && <AddReceiptChoiceModal onClose={() => setChoiceOpen(false)} />}
       <div className="flex items-center gap-2">
         <Receipt size={20} color="#1a1a1a" />
         <span className="text-[16px] font-medium">Receiptly</span>
@@ -49,7 +50,7 @@ export function TopNav({ onLogoutClick }: TopNavProps) {
           fullWidth={false}
           icon={<Camera size={16} />}
           className="py-2 px-3 text-xs"
-          onClick={() => router.push('/receipts/upload')}
+          onClick={() => setChoiceOpen(true)}
         >
           Додати чек
         </Button>
