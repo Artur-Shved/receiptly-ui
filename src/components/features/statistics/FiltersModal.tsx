@@ -55,7 +55,7 @@ function FilterSection({
   return (
     <div>
       <p className="mb-1 text-[11px] uppercase tracking-wide text-[#9ca3af]">{title}</p>
-      <div className="max-h-[180px] overflow-y-auto">
+      <div>
         {options.map((opt) => {
           const checked = selected.includes(opt.id);
           return (
@@ -111,15 +111,16 @@ export function FiltersModal({ initial, onApply, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
       onClick={onClose}
     >
       <div
-        className="w-[380px] max-w-[calc(100%-32px)] rounded-xl bg-white shadow-xl"
+        className="flex w-[380px] max-w-full flex-col rounded-xl bg-white shadow-xl"
+        style={{ maxHeight: 'calc(100vh - 32px)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-[#e5e7eb] p-5">
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-[#e5e7eb] px-5 py-4">
           <h2 className="text-[15px] font-medium text-[#1a1a1a]">Фільтри</h2>
           <div className="flex items-center gap-3">
             <button
@@ -139,7 +140,7 @@ export function FiltersModal({ initial, onApply, onClose }: Props) {
           </div>
         </div>
 
-        <div className="space-y-4 p-5">
+        <div className="flex-1 space-y-4 overflow-y-auto p-5">
           <FilterSection
             title="Магазин"
             options={stores}
@@ -160,7 +161,7 @@ export function FiltersModal({ initial, onApply, onClose }: Props) {
           />
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-[#e5e7eb] p-4">
+        <div className="flex flex-shrink-0 justify-end gap-2 border-t border-[#e5e7eb] px-5 py-3">
           <Button
             variant="secondary"
             fullWidth={false}
