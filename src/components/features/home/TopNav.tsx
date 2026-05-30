@@ -40,7 +40,10 @@ export function TopNav({ onLogoutClick }: TopNavProps) {
         >
           Чеки
         </Link>
-        <Link href="#" className={navClass(false)}>
+        <Link
+          href="/statistics"
+          className={navClass(pathname === '/statistics' || pathname.startsWith('/statistics'))}
+        >
           Статистика
         </Link>
       </nav>

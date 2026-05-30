@@ -5,6 +5,35 @@
 
 ---
 
+## Оновлено: 2026-05-30 — Statistics Phase 1 (мінімальний FE)
+
+### Новий route: `/statistics`
+- `app/statistics/page.tsx` — головна сторінка статистики; defaults на поточний місяць
+- Дані: 2 паралельні запити `getSummary` + `getTimeline`; empty state коли receipts_count = 0
+- Error state: banner з "Оновити" кнопкою
+
+### Нові компоненти `src/components/features/statistics/`
+- **PeriodTabs** — 4 вкладки (Тиждень/Місяць/Рік/Свій); "Свій" → popover з двома `<input type="date">`; експортує helper `presetRange(period)`
+- **StatsGrid** — 3 cards (Витрати, Кількість чеків, Середній чек); trend ±% vs `summary.previous` через `pctChange`; up = red для витрат, gray для кількості; skeleton під час завантаження
+- **TimelineChart** — простий SVG bar chart (без recharts на Phase 1); auto-format X-axis labels залежно від granularity; hover tooltip з сумою + кількістю чеків
+
+### Нові types
+- `src/types/statistics.types.ts` — `StatisticsFilters`, `SummaryResponse`, `BreakdownResponse`, `TimelineResponse`, `Granularity`
+
+### Нові API
+- `src/api/statistics.api.ts` — `statisticsApi.getSummary/getByTransactionCategory/getByStore/getByItemCategory/getTimeline`; query string build з `URLSearchParams` (масиви → `?storeId[]=a&storeId[]=b`)
+
+### Оновлені файли
+- `middleware.ts` — додано `/statistics` у `PROTECTED_ROUTES` + matcher
+- `src/components/features/home/TopNav.tsx` — link "Статистика" тепер `href="/statistics"` з active state
+
+### Phase 2 (відкладено)
+- Filter modal + active tags
+- Donut chart (recharts)
+- 3 breakdown sections (by-tx-cat / by-store / by-item-cat) + drill-down modals
+
+---
+
 ## Оновлено: 2026-05-30 — Multi-photo Receipt Upload (Flow D)
 
 ### Зміни
