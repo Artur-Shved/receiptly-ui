@@ -12,13 +12,15 @@ import type {
 export const NULL_BUCKET_ID = 'none';
 
 function buildQuery(filters: StatisticsFilters): string {
+  // Use plain `?key=a&key=b` (no `[]`) so Express' default query parser
+  // surfaces it as filters.storeId without bracket-suffixed keys.
   const params = new URLSearchParams();
   params.set('dateFrom', filters.dateFrom);
   params.set('dateTo', filters.dateTo);
-  for (const id of filters.storeId ?? []) params.append('storeId[]', id);
+  for (const id of filters.storeId ?? []) params.append('storeId', id);
   for (const id of filters.transactionCategoryId ?? [])
-    params.append('transactionCategoryId[]', id);
-  for (const id of filters.itemCategoryId ?? []) params.append('itemCategoryId[]', id);
+    params.append('transactionCategoryId', id);
+  for (const id of filters.itemCategoryId ?? []) params.append('itemCategoryId', id);
   return params.toString();
 }
 
