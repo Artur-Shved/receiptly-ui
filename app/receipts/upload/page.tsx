@@ -121,21 +121,61 @@ interface ItemSubModalProps {
 }
 
 function ItemSubModal({ item, itemCategories, onSave, onCancel }: ItemSubModalProps) {
+  const initialQty = item?.quantity ?? 1;
+  const initialPrice = item?.pricePerUnit ?? 0;
+  const initialTotal = item?.totalPrice ?? Math.round(initialQty * initialPrice * 100) / 100;
+  const initialAuto = Math.round(initialQty * initialPrice * 100) / 100;
+
   const [name, setName] = useState(item?.name ?? '');
-  const [quantity, setQuantity] = useState(item?.quantity?.toString() ?? '1');
+  const [quantity, setQuantity] = useState(initialQty.toString());
   const [unit, setUnit] = useState(item?.unit ?? 'шт');
-  const [pricePerUnit, setPricePerUnit] = useState(item?.pricePerUnit?.toString() ?? '');
+  const [pricePerUnit, setPricePerUnit] = useState(initialPrice ? initialPrice.toString() : '');
+  const [totalPriceRaw, setTotalPriceRaw] = useState(initialTotal ? initialTotal.toString() : '');
+  const [totalManuallyEdited, setTotalManuallyEdited] = useState(
+    item != null && Math.abs(initialTotal - initialAuto) > 0.01,
+  );
   const [itemCategoryId, setItemCategoryId] = useState<string>(item?.itemCategoryId ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const qty = parseFloat(quantity) || 0;
   const price = parseFloat(pricePerUnit) || 0;
-  const total = Math.round(qty * price * 100) / 100;
+  const autoTotal = Math.round(qty * price * 100) / 100;
+  const total = totalPriceRaw === '' ? autoTotal : parseFloat(totalPriceRaw) || 0;
+  const showAutoHint = totalManuallyEdited && Math.abs(total - autoTotal) > 0.01;
+
+  const handleQtyChange = (v: string) => {
+    setQuantity(v);
+    if (!totalManuallyEdited) {
+      const q = parseFloat(v) || 0;
+      const p = parseFloat(pricePerUnit) || 0;
+      setTotalPriceRaw((Math.round(q * p * 100) / 100).toString());
+    }
+  };
+
+  const handlePriceChange = (v: string) => {
+    setPricePerUnit(v);
+    if (!totalManuallyEdited) {
+      const q = parseFloat(quantity) || 0;
+      const p = parseFloat(v) || 0;
+      setTotalPriceRaw((Math.round(q * p * 100) / 100).toString());
+    }
+  };
+
+  const handleTotalChange = (v: string) => {
+    setTotalPriceRaw(v);
+    setTotalManuallyEdited(true);
+  };
+
+  const resetTotalToAuto = () => {
+    setTotalPriceRaw(autoTotal ? autoTotal.toString() : '');
+    setTotalManuallyEdited(false);
+  };
 
   const handleSave = () => {
     if (!name.trim()) { setError('Введіть назву товару'); return; }
     if (qty <= 0) { setError('Кількість має бути більше 0'); return; }
     if (price <= 0) { setError('Ціна має бути більше 0'); return; }
+    if (total <= 0) { setError('Сума має бути більше 0'); return; }
     onSave({
       _key: item?._key ?? crypto.randomUUID(),
       name: name.trim(),
@@ -194,7 +234,7 @@ function ItemSubModal({ item, itemCategories, onSave, onCancel }: ItemSubModalPr
                 min="0"
                 step="0.001"
                 value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
+                onChange={(e) => handleQtyChange(e.target.value)}
                 className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
               />
             </div>
@@ -216,9 +256,36 @@ function ItemSubModal({ item, itemCategories, onSave, onCancel }: ItemSubModalPr
               min="0"
               step="0.01"
               value={pricePerUnit}
-              onChange={(e) => setPricePerUnit(e.target.value)}
+              onChange={(e) => handlePriceChange(e.target.value)}
               className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
             />
+          </div>
+          <div>
+            <div className="mb-1 flex items-baseline justify-between">
+              <label className="text-[12px] text-gray-500">Сума товару ₴</label>
+              {showAutoHint && (
+                <button
+                  type="button"
+                  onClick={resetTotalToAuto}
+                  className="text-[11px] text-[#1a1a1a] underline hover:opacity-70"
+                >
+                  Перерахувати ({autoTotal} ₴)
+                </button>
+              )}
+            </div>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={totalPriceRaw}
+              onChange={(e) => handleTotalChange(e.target.value)}
+              className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
+            />
+            {!totalManuallyEdited && qty > 0 && price > 0 && (
+              <p className="mt-1 text-[11px] text-[#9ca3af]">
+                Автоматично: {autoTotal} ₴ — змініть якщо потрібно
+              </p>
+            )}
           </div>
           <div>
             <label className="mb-1 block text-[12px] text-gray-500">Категорія</label>
@@ -233,11 +300,6 @@ function ItemSubModal({ item, itemCategories, onSave, onCancel }: ItemSubModalPr
               ))}
             </select>
           </div>
-          {qty > 0 && price > 0 && (
-            <p className="text-right text-[12px] text-[#9ca3af]">
-              Сума: <span className="font-medium text-[#1a1a1a]">{total} ₴</span>
-            </p>
-          )}
         </div>
 
         <div className="mt-5 flex justify-end gap-2">

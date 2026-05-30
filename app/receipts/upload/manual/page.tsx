@@ -74,25 +74,70 @@ interface ItemSubModalProps {
 }
 
 function ItemSubModal({ item, itemCategories, onSave, onCancel }: ItemSubModalProps) {
+  const initialQty = item?.quantity ?? 1;
+  const initialPrice = item?.pricePerUnit ?? 0;
+  const initialTotal = item?.totalPrice ?? round2(initialQty * initialPrice);
+  const initialAuto = round2(initialQty * initialPrice);
+
   const [name, setName] = useState(item?.name ?? '');
-  const [quantity, setQuantity] = useState(item?.quantity?.toString() ?? '1');
+  const [quantity, setQuantity] = useState(initialQty.toString());
   const [unit, setUnit] = useState(item?.unit ?? 'шт');
-  const [pricePerUnit, setPricePerUnit] = useState(item?.pricePerUnit?.toString() ?? '');
+  const [pricePerUnit, setPricePerUnit] = useState(initialPrice ? initialPrice.toString() : '');
+  const [totalPriceRaw, setTotalPriceRaw] = useState(initialTotal ? initialTotal.toString() : '');
+  const [totalManuallyEdited, setTotalManuallyEdited] = useState(
+    item != null && Math.abs(initialTotal - initialAuto) > 0.01,
+  );
   const [itemCategoryId, setItemCategoryId] = useState<string>(item?.itemCategoryId ?? '');
 
   const [nameError, setNameError] = useState<string | null>(null);
   const [qtyError, setQtyError] = useState<string | null>(null);
   const [priceError, setPriceError] = useState<string | null>(null);
+  const [totalError, setTotalError] = useState<string | null>(null);
 
   const qty = parseFloat(quantity) || 0;
   const price = parseFloat(pricePerUnit) || 0;
-  const total = round2(qty * price);
+  const autoTotal = round2(qty * price);
+  const total = totalPriceRaw === '' ? autoTotal : parseFloat(totalPriceRaw) || 0;
+  const showAutoHint = totalManuallyEdited && Math.abs(total - autoTotal) > 0.01;
+
+  const handleQtyChange = (v: string) => {
+    setQuantity(v);
+    setQtyError(null);
+    if (!totalManuallyEdited) {
+      const q = parseFloat(v) || 0;
+      const p = parseFloat(pricePerUnit) || 0;
+      setTotalPriceRaw(round2(q * p).toString());
+    }
+  };
+
+  const handlePriceChange = (v: string) => {
+    setPricePerUnit(v);
+    setPriceError(null);
+    if (!totalManuallyEdited) {
+      const q = parseFloat(quantity) || 0;
+      const p = parseFloat(v) || 0;
+      setTotalPriceRaw(round2(q * p).toString());
+    }
+  };
+
+  const handleTotalChange = (v: string) => {
+    setTotalPriceRaw(v);
+    setTotalManuallyEdited(true);
+    setTotalError(null);
+  };
+
+  const resetTotalToAuto = () => {
+    setTotalPriceRaw(autoTotal ? autoTotal.toString() : '');
+    setTotalManuallyEdited(false);
+    setTotalError(null);
+  };
 
   const validate = (): boolean => {
     let ok = true;
     if (!name.trim()) { setNameError('Введіть назву товару'); ok = false; }
     if (qty <= 0) { setQtyError('Значення має бути більше 0'); ok = false; }
     if (price <= 0) { setPriceError('Значення має бути більше 0'); ok = false; }
+    if (total <= 0) { setTotalError('Значення має бути більше 0'); ok = false; }
     return ok;
   };
 
@@ -100,6 +145,7 @@ function ItemSubModal({ item, itemCategories, onSave, onCancel }: ItemSubModalPr
     setNameError(null);
     setQtyError(null);
     setPriceError(null);
+    setTotalError(null);
     if (!validate()) return;
     onSave({
       _key: item?._key ?? crypto.randomUUID(),
@@ -153,7 +199,7 @@ function ItemSubModal({ item, itemCategories, onSave, onCancel }: ItemSubModalPr
                 min="0"
                 step="0.001"
                 value={quantity}
-                onChange={(e) => { setQuantity(e.target.value); setQtyError(null); }}
+                onChange={(e) => handleQtyChange(e.target.value)}
                 className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
               />
               {qtyError && <p className="mt-1 text-[12px] text-[#A32D2D]">{qtyError}</p>}
@@ -175,11 +221,40 @@ function ItemSubModal({ item, itemCategories, onSave, onCancel }: ItemSubModalPr
                 min="0"
                 step="0.01"
                 value={pricePerUnit}
-                onChange={(e) => { setPricePerUnit(e.target.value); setPriceError(null); }}
+                onChange={(e) => handlePriceChange(e.target.value)}
                 className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
               />
               {priceError && <p className="mt-1 text-[12px] text-[#A32D2D]">{priceError}</p>}
             </div>
+          </div>
+
+          <div>
+            <div className="mb-1 flex items-baseline justify-between">
+              <label className="text-[12px] text-gray-500">Сума товару ₴</label>
+              {showAutoHint && (
+                <button
+                  type="button"
+                  onClick={resetTotalToAuto}
+                  className="text-[11px] text-[#1a1a1a] underline hover:opacity-70"
+                >
+                  Перерахувати ({autoTotal} ₴)
+                </button>
+              )}
+            </div>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={totalPriceRaw}
+              onChange={(e) => handleTotalChange(e.target.value)}
+              className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
+            />
+            {totalError && <p className="mt-1 text-[12px] text-[#A32D2D]">{totalError}</p>}
+            {!totalManuallyEdited && !totalError && qty > 0 && price > 0 && (
+              <p className="mt-1 text-[11px] text-[#9ca3af]">
+                Автоматично: {autoTotal} ₴ — змініть якщо потрібно
+              </p>
+            )}
           </div>
 
           <div>
@@ -192,14 +267,6 @@ function ItemSubModal({ item, itemCategories, onSave, onCancel }: ItemSubModalPr
               <option value="">Без категорії</option>
               {itemCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
-          </div>
-
-          <div
-            className="flex items-center justify-between rounded-lg px-3 py-[10px]"
-            style={{ backgroundColor: '#F7F7F7' }}
-          >
-            <span className="text-[12px] text-gray-500">Загальна ціна товару</span>
-            <span className="text-[14px] font-medium text-[#1a1a1a]">{total} ₴</span>
           </div>
         </div>
 
