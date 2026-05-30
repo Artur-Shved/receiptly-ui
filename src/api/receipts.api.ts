@@ -13,6 +13,11 @@ export const receiptsApi = {
     for (const file of files) form.append('images', file);
     return apiClient.post<ParsedReceiptDto>('/receipts/parse', form);
   },
+  parseFromQrImage: (file: File): Promise<ParsedReceiptDto> => {
+    const form = new FormData();
+    form.append('image', file);
+    return apiClient.post<ParsedReceiptDto>('/receipts/parse-from-qr-image', form);
+  },
   getAll: (page = 1, limit = 20): Promise<ReceiptsListResponse> =>
     apiClient.get<ReceiptsListResponse>(`/receipts?page=${page}&limit=${limit}`),
   getOne: (id: string): Promise<Receipt> =>

@@ -5,6 +5,28 @@
 
 ---
 
+## Оновлено: 2026-05-30 — QR (ДПС) Flow E
+
+### Нова сторінка `/receipts/upload/qr`
+- State machine: `upload` → `confirm` → `processing` → `preview` → `success`, з error overlay для будь-якого кроку
+- **Upload**: drag&drop + 2 кнопки (Сфотографувати / З галереї); валідація формат+розмір
+- **Confirm**: preview QR-фото з кнопками "Перефотографувати" / "Використати"
+- **Processing**: компонент `ProcessingStages` — 3 послідовні етапи (Декодування QR / Запит до ДПС / Розпізнавання) з status icons (wait/active/done/error); прогрес симульований таймером 2.2s/stage поки BE одним викликом виконує pipeline
+- **Preview**: 2×2 meta grid (Магазин + Дата з DPS badge; Метод оплати + Категорія транзакції required з червоним підсвічуванням якщо порожні); items table з inline ItemSubModal; total + sum-mismatch warning; auto-select існуючого магазину якщо ДПС повернула існуючу назву
+- **Error**: маппінг 7 кодів (`QR_NOT_FOUND`, `QR_INVALID_PARAMS`, `QR_NOT_FISCAL`, `DPS_UNAVAILABLE`, `DPS_NOT_FOUND`, `DPS_PARSE_FAILED`, `NETWORK_ERROR`, `GENERIC`) на текст + опції "Спробувати ще раз / Фото чеку / Вручну / Скасувати"
+
+### Оновлений `AddReceiptChoiceModal`
+- Тепер 3 картки замість 2: Сфотографувати (LLM, #1a1a1a акцент) / Сканувати QR-код (новий, #185FA5 акцент) / Ввести вручну (нейтрал)
+- Info banner внизу: "QR-код знаходиться внизу фіскального чеку..."
+
+### Новий API method
+- `receiptsApi.parseFromQrImage(file: File)` — FormData з `image` → `POST /api/receipts/parse-from-qr-image`
+
+### DpsBadge helper
+- Маленький badge `ДПС` (background `#E6F1FB`, color `#0C447C`) поряд з label полів які заповнені з реєстру
+
+---
+
 ## Оновлено: 2026-05-30 — Statistics Phase 2 (filters + donut + breakdowns + drill-downs)
 
 ### Нові компоненти `src/components/features/statistics/`

@@ -1,23 +1,52 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Camera, Pencil, X } from 'lucide-react';
+import { Camera, Pencil, QrCode, X, Info } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
 }
 
+interface CardProps {
+  onClick: () => void;
+  borderColor: string;
+  iconBg: string;
+  iconColor: string;
+  icon: React.ReactNode;
+  title: string;
+  sub: string;
+  ctaColor: string;
+}
+
+function ChoiceCard({ onClick, borderColor, iconBg, iconColor, icon, title, sub, ctaColor }: CardProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex flex-col items-start gap-2 rounded-lg bg-white p-4 text-left transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#9ca3af]"
+      style={{ border: `0.5px solid ${borderColor}` }}
+    >
+      <div
+        className="mb-1 flex h-10 w-10 items-center justify-center rounded-lg"
+        style={{ backgroundColor: iconBg, color: iconColor }}
+      >
+        {icon}
+      </div>
+      <p className="text-[14px] font-medium text-[#1a1a1a]">{title}</p>
+      <p className="text-[12px] text-gray-500">{sub}</p>
+      <span className="mt-1 text-[12px] font-medium" style={{ color: ctaColor }}>
+        Почати →
+      </span>
+    </button>
+  );
+}
+
 export function AddReceiptChoiceModal({ onClose }: Props) {
   const router = useRouter();
 
-  const handlePhoto = () => {
+  const handleNav = (path: string) => {
     onClose();
-    router.push('/receipts/upload');
-  };
-
-  const handleManual = () => {
-    onClose();
-    router.push('/receipts/upload/manual');
+    router.push(path);
   };
 
   return (
@@ -27,7 +56,7 @@ export function AddReceiptChoiceModal({ onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="w-[560px] max-w-[calc(100%-32px)] rounded-xl bg-white shadow-xl"
+        className="w-[640px] max-w-[calc(100%-32px)] rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[#e5e7eb] p-5">
@@ -44,37 +73,45 @@ export function AddReceiptChoiceModal({ onClose }: Props) {
         <div className="p-5">
           <p className="mb-3 text-[13px] text-gray-500">Оберіть спосіб додавання</p>
 
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={handlePhoto}
-              className="flex flex-col items-start gap-2 rounded-lg border border-[#1a1a1a] bg-white p-4 text-left transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#1a1a1a]"
-            >
-              <div
-                className="mb-1 flex h-10 w-10 items-center justify-center rounded-lg"
-                style={{ backgroundColor: '#E1F5EE', color: '#0F6E56' }}
-              >
-                <Camera size={20} />
-              </div>
-              <p className="text-[14px] font-medium text-[#1a1a1a]">Сфотографувати чек</p>
-              <p className="text-[12px] text-gray-500">LLM розпізнає товари автоматично</p>
-              <span className="mt-1 text-[13px] font-medium" style={{ color: '#0F6E56' }}>
-                Почати →
-              </span>
-            </button>
+          <div className="grid grid-cols-3 gap-3">
+            <ChoiceCard
+              onClick={() => handleNav('/receipts/upload')}
+              borderColor="#1a1a1a"
+              iconBg="#E1F5EE"
+              iconColor="#0F6E56"
+              icon={<Camera size={20} />}
+              title="Сфотографувати"
+              sub="LLM розпізнає товари автоматично"
+              ctaColor="#0F6E56"
+            />
+            <ChoiceCard
+              onClick={() => handleNav('/receipts/upload/qr')}
+              borderColor="#185FA5"
+              iconBg="#E6F1FB"
+              iconColor="#185FA5"
+              icon={<QrCode size={20} />}
+              title="Сканувати QR-код"
+              sub="Дані з реєстру ДПС автоматично"
+              ctaColor="#185FA5"
+            />
+            <ChoiceCard
+              onClick={() => handleNav('/receipts/upload/manual')}
+              borderColor="#e5e7eb"
+              iconBg="#F7F7F7"
+              iconColor="#6b7280"
+              icon={<Pencil size={20} />}
+              title="Ввести вручну"
+              sub="Без фото, товари вводяться самостійно"
+              ctaColor="#6b7280"
+            />
+          </div>
 
-            <button
-              type="button"
-              onClick={handleManual}
-              className="flex flex-col items-start gap-2 rounded-lg border border-[#e5e7eb] bg-white p-4 text-left transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#9ca3af]"
-            >
-              <div className="mb-1 flex h-10 w-10 items-center justify-center rounded-lg bg-[#F7F7F7] text-[#6b7280]">
-                <Pencil size={20} />
-              </div>
-              <p className="text-[14px] font-medium text-[#1a1a1a]">Ввести вручну</p>
-              <p className="text-[12px] text-gray-500">Без фото, товари вводяться самостійно</p>
-              <span className="mt-1 text-[13px] font-medium text-[#6b7280]">Почати →</span>
-            </button>
+          <div
+            className="mt-4 flex items-start gap-2 rounded-md px-3 py-[10px] text-[12px]"
+            style={{ backgroundColor: '#E6F1FB', color: '#0C447C' }}
+          >
+            <Info size={14} className="mt-0.5 flex-shrink-0" />
+            QR-код знаходиться внизу фіскального чеку — зазвичай квадратний штрих-код з підписом «Фіскальний чек»
           </div>
         </div>
       </div>
