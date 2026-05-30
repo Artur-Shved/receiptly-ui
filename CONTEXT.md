@@ -5,6 +5,22 @@
 
 ---
 
+## Оновлено: 2026-05-30 — Multi-photo Receipt Upload (Flow D)
+
+### Зміни
+- `receiptsApi.parse(files: File[])` — FormData з кількома `images` полями (single-photo тепер просто масив з 1 елемента)
+- Types: `ParsedItem.photoIndex?`, новий `ParseMeta` (photosTotal, photosSucceeded, photosFailed, duplicatesRemoved, hasPriceConflicts, failedIndices, priceConflicts), новий `PriceConflict`
+- `/receipts/upload` Step 1 переписано: список фото з add/remove (max 10) + drag&drop, авто-парс при кліку "Далі →"
+- Step 2: per-photo progress card (waiting/processing/done/error) + progress bar + meta форма праворуч
+- Step 3 warning banners:
+  - Info: дублікати видалено (без price conflicts) — синій banner
+  - Warning: price conflicts — жовтий banner + conflict detail cards (saved vs removed з photoIndex)
+  - Error: partial failure — червоний banner з номерами фото що не розпізнались
+  - Full error state: всі фото failed → екран з options ("Спробувати ще раз" / "Ввести вручну" → /receipts/upload/manual / "Скасувати")
+- Conflict badge "з фото [N]" поруч з назвою товару в items table коли є price conflict
+
+---
+
 ## Оновлено: 2026-05-30 — Manual Receipt Entry (Flow C)
 
 ### Зміни

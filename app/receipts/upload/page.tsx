@@ -1,15 +1,19 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Upload,
   X,
   Pencil,
   Trash2,
   CheckCircle2,
   AlertTriangle,
   Check,
+  Plus,
+  Camera,
+  Info,
+  ScanEye,
+  RefreshCw,
 } from 'lucide-react';
 import { TopNav } from '@/src/components/features/home/TopNav';
 import { Button } from '@/src/components/ui/Button';
@@ -27,7 +31,17 @@ import type { ItemCategory } from '@/src/types/item-category.types';
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_PHOTOS = 10;
 const UNITS = ['шт', 'кг', 'л', 'м', 'г'];
+
+type PhotoStatus = 'waiting' | 'processing' | 'done' | 'error';
+
+interface PhotoItem {
+  id: string;
+  file: File;
+  previewUrl: string;
+  status: PhotoStatus;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -39,6 +53,7 @@ function todayDateString(): string {
 
 interface EditableItem extends CreateReceiptItemDto {
   _key: string;
+  photoIndex?: number;
 }
 
 // ─── Logout Modal ─────────────────────────────────────────────────────────────
@@ -245,9 +260,10 @@ interface ItemsEditorProps {
   itemCategories: ItemCategory[];
   currency: string;
   onChange: (items: EditableItem[]) => void;
+  conflictNames?: Set<string>;
 }
 
-function ItemsEditor({ items, itemCategories, currency, onChange }: ItemsEditorProps) {
+function ItemsEditor({ items, itemCategories, currency, onChange, conflictNames }: ItemsEditorProps) {
   const [subModalItem, setSubModalItem] = useState<EditableItem | null | 'new'>(null);
 
   const handleSaveItem = (saved: EditableItem) => {
@@ -295,7 +311,17 @@ function ItemsEditor({ items, itemCategories, currency, onChange }: ItemsEditorP
               className="grid items-center border-t border-[#e5e7eb]"
               style={{ gridTemplateColumns: '3fr 1fr 1fr 1fr 60px 64px', padding: '8px 12px' }}
             >
-              <span className="text-[13px] text-[#1a1a1a]">{item.name}</span>
+              <span className="flex items-center gap-2 text-[13px] text-[#1a1a1a]">
+                {item.name}
+                {conflictNames?.has(item.name.trim().toLowerCase()) && item.photoIndex !== undefined && (
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                    style={{ backgroundColor: '#EAF3DE', color: '#27500A' }}
+                  >
+                    з фото {item.photoIndex + 1}
+                  </span>
+                )}
+              </span>
               <span><ItemCategoryBadge name={catName} /></span>
               <span className="text-[13px] text-[#6b7280]">
                 {item.quantity}{item.unit ? ` ${item.unit}` : ''}
@@ -398,18 +424,17 @@ export default function ReceiptUploadPage() {
 
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
-  // Step 1
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  // Step 1 — photo list
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Step 2 - parse state
+  // Step 2 — parse state
   const [isParsing, setIsParsing] = useState(false);
   const [parseResult, setParseResult] = useState<ParsedReceiptDto | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
 
-  // Step 2 - form (all optional)
+  // Step 2 — meta form (all optional)
   const [storeId, setStoreId] = useState<string | null>(null);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [transactionCategoryId, setTransactionCategoryId] = useState<string | null>(null);
@@ -430,66 +455,103 @@ export default function ReceiptUploadPage() {
     parseResult?.totalAmount != null &&
     Math.abs(computedTotal - parseResult.totalAmount) > 0.01;
 
-  // ── File validation & parse kick-off ────────────────────────────────────────
+  // ── Photo list management ────────────────────────────────────────────────
 
-  const handleFileSelect = useCallback(
-    (selected: File) => {
+  const addPhotos = useCallback(
+    (selected: FileList | File[]) => {
       setFileError(null);
-      if (!ACCEPTED_TYPES.includes(selected.type)) {
-        setFileError('Підтримуються лише JPG, PNG, WebP файли');
-        return;
-      }
-      if (selected.size > MAX_FILE_SIZE) {
-        setFileError('Файл занадто великий (максимум 10 МБ)');
-        return;
-      }
-      setFile(selected);
-      setPreviewUrl(URL.createObjectURL(selected));
-      // start parse immediately
-      setIsParsing(true);
-      setParseError(null);
-      setParseResult(null);
-      setStep(2);
+      const incoming = Array.from(selected);
+      if (incoming.length === 0) return;
 
-      receiptsApi
-        .parse(selected)
-        .then((result) => {
-          setParseResult(result);
-          setIsParsing(false);
-          // Pre-fill store
-          if (result.storeName) {
-            const match = stores.find(
-              (s) => s.name.toLowerCase() === result.storeName!.toLowerCase(),
-            );
-            if (match) setStoreId(match.id);
+      setPhotos((prev) => {
+        let next = [...prev];
+        for (const f of incoming) {
+          if (!ACCEPTED_TYPES.includes(f.type)) {
+            setFileError('Підтримуються тільки JPG, PNG, WebP файли');
+            continue;
           }
-          // Pre-fill items
-          if (result.items && result.parseConfidence !== 'failed') {
-            setItems(
-              result.items.map((pi: ParsedItem) => ({
-                _key: crypto.randomUUID(),
-                name: pi.name,
-                quantity: pi.quantity,
-                unit: pi.unit ?? undefined,
-                pricePerUnit: pi.pricePerUnit,
-                totalPrice: pi.totalPrice,
-                itemCategoryId: null,
-              })),
-            );
+          if (f.size > MAX_FILE_SIZE) {
+            setFileError('Файл занадто великий. Максимум 10 MB.');
+            continue;
           }
-        })
-        .catch(() => {
-          setParseError('Не вдалось розпізнати чек');
-          setIsParsing(false);
-        });
+          if (next.length >= MAX_PHOTOS) {
+            setFileError('Максимум 10 фотографій для одного чеку');
+            break;
+          }
+          next = [
+            ...next,
+            { id: crypto.randomUUID(), file: f, previewUrl: URL.createObjectURL(f), status: 'waiting' },
+          ];
+        }
+        return next;
+      });
     },
-    [stores],
+    [],
   );
 
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0];
-    if (selected) handleFileSelect(selected);
+  const removePhoto = (id: string) => {
+    setPhotos((prev) => {
+      const target = prev.find((p) => p.id === id);
+      if (target) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((p) => p.id !== id);
+    });
+    setFileError(null);
   };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      addPhotos(e.target.files);
+      e.target.value = '';
+    }
+  };
+
+  const handleStep1Next = useCallback(() => {
+    if (photos.length === 0) return;
+    setPhotos((prev) => prev.map((p) => ({ ...p, status: 'processing' })));
+    setIsParsing(true);
+    setParseError(null);
+    setParseResult(null);
+    setStep(2);
+
+    receiptsApi
+      .parse(photos.map((p) => p.file))
+      .then((result) => {
+        setParseResult(result);
+        setIsParsing(false);
+        const failed = new Set(result.meta?.failedIndices ?? []);
+        setPhotos((prev) =>
+          prev.map((p, idx) => ({
+            ...p,
+            status: failed.has(idx) ? 'error' : 'done',
+          })),
+        );
+        if (result.storeName) {
+          const match = stores.find(
+            (s) => s.name.toLowerCase() === result.storeName!.toLowerCase(),
+          );
+          if (match) setStoreId(match.id);
+        }
+        if (result.items && result.parseConfidence !== 'failed') {
+          setItems(
+            result.items.map((pi: ParsedItem) => ({
+              _key: crypto.randomUUID(),
+              name: pi.name,
+              quantity: pi.quantity,
+              unit: pi.unit ?? undefined,
+              pricePerUnit: pi.pricePerUnit,
+              totalPrice: pi.totalPrice,
+              itemCategoryId: null,
+              photoIndex: pi.photoIndex,
+            })),
+          );
+        }
+      })
+      .catch(() => {
+        setParseError('Не вдалось розпізнати чек');
+        setIsParsing(false);
+        setPhotos((prev) => prev.map((p) => ({ ...p, status: 'error' })));
+      });
+  }, [photos, stores]);
 
   // ── Step 2 "Далі" ───────────────────────────────────────────────────────────
 
@@ -521,7 +583,7 @@ export default function ReceiptUploadPage() {
         transactionCategoryId: transactionCategoryId,
         receiptDate: parseResult?.receiptDate ?? todayDateString(),
         currency: parsedCurrency,
-        items: items.map(({ _key: _k, ...rest }) => rest),
+        items: items.map(({ _key: _k, photoIndex: _p, ...rest }) => rest),
       });
       setCreatedReceiptId(receipt.id);
       setStep(4);
@@ -536,8 +598,10 @@ export default function ReceiptUploadPage() {
 
   const resetWizard = () => {
     setStep(1);
-    setFile(null);
-    setPreviewUrl(null);
+    setPhotos((prev) => {
+      prev.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+      return [];
+    });
     setFileError(null);
     setIsParsing(false);
     setParseResult(null);
@@ -550,6 +614,13 @@ export default function ReceiptUploadPage() {
     setConfirmError(null);
     setCreatedReceiptId(null);
   };
+
+  // ── Conflict lookup for badges ────────────────────────────────────────────
+  const conflictNames = useMemo(() => {
+    const meta = parseResult?.meta;
+    if (!meta || meta.priceConflicts.length === 0) return new Set<string>();
+    return new Set(meta.priceConflicts.map((c) => c.name.trim().toLowerCase()));
+  }, [parseResult]);
 
   // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -567,88 +638,219 @@ export default function ReceiptUploadPage() {
         <div style={{ maxWidth: 900, margin: '0 auto', padding: 32 }}>
           <StepIndicator current={step} />
 
-          {/* ── Step 1: File selection ─────────────────────────────────────── */}
+          {/* ── Step 1: Photo list ──────────────────────────────────────────── */}
           {step === 1 && (
-            <div className="flex flex-col items-center">
+            <div className="mx-auto w-full max-w-xl">
+              <div className="mb-3 flex items-baseline justify-between">
+                <h2 className="text-[16px] font-medium text-[#1a1a1a]">Фотографії чеку</h2>
+                <p className="text-[12px] text-[#9ca3af]">
+                  Додані фото ({photos.length} / {MAX_PHOTOS})
+                </p>
+              </div>
+
               <div
-                className="flex w-full max-w-lg flex-col items-center rounded-xl px-8 py-12 text-center"
-                style={{
-                  border: '2px dashed #e5e7eb',
-                  borderRadius: 12,
-                }}
+                className="space-y-2"
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
-                  const dropped = e.dataTransfer.files?.[0];
-                  if (dropped) handleFileSelect(dropped);
+                  if (e.dataTransfer.files) addPhotos(e.dataTransfer.files);
                 }}
               >
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#F7F7F7]">
-                  <Upload size={24} color="#9ca3af" />
-                </div>
-                <p className="mb-1 text-[15px] font-medium text-[#1a1a1a]">
-                  Перетягніть фото чеку або виберіть файл
-                </p>
-                <p className="mb-6 text-[13px] text-[#9ca3af]">JPG, PNG — до 10 MB</p>
+                {photos.map((p, idx) => (
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-3 rounded-lg bg-white px-3 py-[10px]"
+                    style={{ border: '0.5px solid #e5e7eb' }}
+                  >
+                    <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-[#1a1a1a]">
+                      <img
+                        src={p.previewUrl}
+                        alt={`Фото ${idx + 1}`}
+                        className="h-full w-full object-cover opacity-90"
+                      />
+                      <span
+                        className="absolute left-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-medium"
+                        style={{ backgroundColor: '#1a1a1a', color: '#fff' }}
+                      >
+                        {idx + 1}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate text-[13px] font-medium text-[#1a1a1a]">
+                        Фото {idx + 1}
+                      </p>
+                      <p className="text-[12px] text-[#9ca3af]">
+                        {(p.file.size / (1024 * 1024)).toFixed(2)} MB · {p.file.type.split('/')[1]?.toUpperCase()}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(p.id)}
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#FCEBEB] hover:text-[#A32D2D]"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
 
-                {fileError && (
-                  <p className="mb-4 w-full rounded-md bg-[#FCEBEB] px-3 py-2 text-[13px] text-[#A32D2D]">
-                    {fileError}
-                  </p>
+                {photos.length < MAX_PHOTOS ? (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-[10px] text-left hover:bg-[#F7F7F7]"
+                    style={{ border: '0.5px dashed #e5e7eb' }}
+                  >
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-[#F7F7F7] text-[#6b7280]">
+                      <Camera size={18} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[13px] text-[#1a1a1a]">Додати ще фото</p>
+                      <p className="text-[12px] text-[#9ca3af]">
+                        Сфотографувати або вибрати з галереї
+                      </p>
+                    </div>
+                    <span className="text-[12px] text-[#9ca3af]">
+                      {MAX_PHOTOS - photos.length} залишилось
+                    </span>
+                  </button>
+                ) : (
+                  <div className="rounded-lg px-3 py-[10px]" style={{ border: '0.5px solid #FAEEDA', backgroundColor: '#FAEEDA', color: '#633806' }}>
+                    <span className="text-[12px] font-medium">Максимум 10</span>
+                    <span className="ml-2 text-[12px]">
+                      Видаліть зайве фото, щоб додати нове.
+                    </span>
+                  </div>
                 )}
+              </div>
 
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                className="hidden"
+                onChange={handleFileInputChange}
+              />
+
+              {fileError && (
+                <p className="mt-3 rounded-md bg-[#FCEBEB] px-3 py-2 text-[13px] text-[#A32D2D]">
+                  {fileError}
+                </p>
+              )}
+
+              <div className="mt-6 flex items-center justify-between">
+                <p className="text-[12px] text-[#9ca3af]">Порядок фото впливає на дедуплікацію</p>
                 <Button
                   fullWidth={false}
-                  onClick={() => fileInputRef.current?.click()}
+                  disabled={photos.length === 0}
                   className="py-2 px-6 text-[13px]"
+                  onClick={handleStep1Next}
                 >
-                  Вибрати файл
+                  Далі →
                 </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  onChange={handleFileInputChange}
-                />
               </div>
+              {photos.length === 0 && (
+                <p className="mt-2 text-right text-[12px] text-[#9ca3af]">Додайте хоча б одне фото</p>
+              )}
             </div>
           )}
 
-          {/* ── Step 2: Metadata + parse ───────────────────────────────────── */}
+          {/* ── Step 2: Progress + Metadata ─────────────────────────────────── */}
           {step === 2 && (
             <div className="flex gap-6">
-              {/* Left: image preview */}
-              <div className="flex flex-col items-center" style={{ flex: 1 }}>
-                {previewUrl && (
-                  <img
-                    src={previewUrl}
-                    alt="Фото чеку"
-                    className="w-full rounded-xl object-contain"
-                    style={{ maxHeight: 400 }}
-                  />
-                )}
-                {isParsing && (
-                  <div className="mt-3 flex items-center gap-2 rounded-full bg-[#EAF3DE] px-4 py-1.5">
-                    <span className="relative flex h-2.5 w-2.5">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#3B6D11] opacity-75" />
-                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#3B6D11]" />
+              {/* Left: progress card */}
+              <div style={{ flex: 1 }}>
+                <div className="rounded-xl p-4" style={{ border: '0.5px solid #e5e7eb', backgroundColor: '#F7F7F7' }}>
+                  <div className="mb-3 flex items-center gap-2">
+                    {isParsing ? (
+                      <span className="relative flex h-3 w-3">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#1a1a1a] opacity-50" />
+                        <span className="relative inline-flex h-3 w-3 rounded-full bg-[#1a1a1a]" />
+                      </span>
+                    ) : (
+                      <Check size={14} color="#3B6D11" />
+                    )}
+                    <span className="text-[13px] font-medium text-[#1a1a1a]">
+                      {isParsing
+                        ? `Обробка фото (${photos.filter((p) => p.status === 'processing').length} з ${photos.length})...`
+                        : 'Обробку завершено'}
                     </span>
-                    <span className="text-[12px] text-[#3B6D11]">Розпізнаємо...</span>
                   </div>
-                )}
+                  <div className="mb-4 h-[3px] w-full overflow-hidden rounded-full bg-[#e5e7eb]">
+                    <div
+                      className="h-full transition-all"
+                      style={{
+                        width: `${
+                          photos.length === 0
+                            ? 0
+                            : (photos.filter((p) => p.status === 'done' || p.status === 'error').length / photos.length) * 100
+                        }%`,
+                        backgroundColor: '#1a1a1a',
+                      }}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    {photos.map((p, idx) => (
+                      <div key={p.id} className="flex items-center gap-2.5">
+                        <span
+                          className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-medium"
+                          style={{ backgroundColor: '#1a1a1a', color: '#fff' }}
+                        >
+                          {idx + 1}
+                        </span>
+                        <span className="flex-1 text-[12px] text-[#6b7280]">Фото {idx + 1}</span>
+                        <span className="flex items-center gap-1.5">
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{
+                              backgroundColor:
+                                p.status === 'done'
+                                  ? '#3B6D11'
+                                  : p.status === 'error'
+                                    ? '#A32D2D'
+                                    : p.status === 'processing'
+                                      ? '#F59E0B'
+                                      : '#9ca3af',
+                              animation: p.status === 'processing' ? 'pulse 1.2s ease-in-out infinite' : undefined,
+                            }}
+                          />
+                          <span
+                            className="text-[12px]"
+                            style={{
+                              color:
+                                p.status === 'done'
+                                  ? '#3B6D11'
+                                  : p.status === 'error'
+                                    ? '#A32D2D'
+                                    : '#6b7280',
+                            }}
+                          >
+                            {p.status === 'done'
+                              ? 'Розпізнано'
+                              : p.status === 'error'
+                                ? 'Помилка'
+                                : p.status === 'processing'
+                                  ? 'Обробляється...'
+                                  : 'Очікує'}
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 {parseError && parseResult?.parseConfidence !== 'failed' && (
-                  <div className="mt-3 w-full rounded-md bg-[#FCEBEB] px-3 py-2 text-center text-[13px] text-[#A32D2D]">
+                  <div className="mt-3 rounded-md bg-[#FCEBEB] px-3 py-2 text-center text-[13px] text-[#A32D2D]">
                     {parseError}
                   </div>
                 )}
+
                 <Button
                   variant="secondary"
                   fullWidth={false}
                   className="mt-4 py-2 px-4 text-[13px]"
-                  onClick={() => {
-                    resetWizard();
-                  }}
+                  onClick={resetWizard}
                 >
                   Змінити фото
                 </Button>
@@ -715,67 +917,113 @@ export default function ReceiptUploadPage() {
           {/* ── Step 3: Preview items ──────────────────────────────────────── */}
           {step === 3 && (
             <div>
-              {parseResult?.parseConfidence === 'partial' && (
+              {/* All-failed: full error state */}
+              {(parseResult?.parseConfidence === 'failed' || (parseError && parseResult?.meta?.photosSucceeded === 0)) ? (
+                <div className="mx-auto flex max-w-md flex-col items-center rounded-xl bg-white p-8 text-center" style={{ border: '0.5px solid #e5e7eb' }}>
+                  <div className="mb-4 flex h-[52px] w-[52px] items-center justify-center rounded-full" style={{ backgroundColor: '#FCEBEB', color: '#A32D2D' }}>
+                    <ScanEye size={24} />
+                  </div>
+                  <p className="mb-2 text-[15px] font-medium text-[#1a1a1a]">Не вдалось розпізнати чек</p>
+                  <p className="mb-6 text-[13px] leading-[1.5] text-[#6b7280]">
+                    {parseResult?.meta
+                      ? `Жодне з ${parseResult.meta.photosTotal} фото не вдалось розпізнати.`
+                      : 'Спробуйте зробити чіткіші знімки або введіть дані вручну.'}
+                  </p>
+                  <Button
+                    fullWidth
+                    icon={<RefreshCw size={14} />}
+                    className="mb-2 py-2 text-[13px]"
+                    onClick={handleStep1Next}
+                  >
+                    Спробувати ще раз
+                  </Button>
+                  <Button
+                    fullWidth
+                    variant="secondary"
+                    icon={<Pencil size={14} />}
+                    className="py-2 text-[13px]"
+                    onClick={() => router.push('/receipts/upload/manual')}
+                  >
+                    Ввести вручну
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/receipts')}
+                    className="mt-4 text-[12px] text-[#9ca3af] hover:underline"
+                  >
+                    Скасувати
+                  </button>
+                </div>
+              ) : (
+              <>
+              {/* Partial: some photos failed */}
+              {parseResult?.meta && parseResult.meta.photosFailed > 0 && parseResult.meta.photosSucceeded > 0 && (
                 <div
-                  className="mb-4 flex items-start gap-2 rounded-md px-3 py-[10px] text-[13px]"
-                  style={{ backgroundColor: '#FAEEDA', color: '#854F0B' }}
+                  className="mb-3 flex items-start gap-2 rounded-md px-3 py-[10px] text-[13px]"
+                  style={{ backgroundColor: '#FCEBEB', color: '#A32D2D' }}
                 >
                   <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
-                  Деякі товари могли не розпізнатись — перевірте список
+                  <span>
+                    Не вдалось розпізнати фото {parseResult.meta.failedIndices.map((i) => i + 1).join(', ')}. Товари з нього не додані до списку.
+                  </span>
                 </div>
               )}
 
-              {(parseResult?.parseConfidence === 'failed' || parseError) && (
-                <div className="mb-4 rounded-md bg-[#FCEBEB] px-3 py-3 text-[13px] text-[#A32D2D]">
-                  <p className="font-medium">Не вдалось розпізнати чек</p>
-                  <div className="mt-2 flex gap-2">
-                    <button
-                      type="button"
-                      className="underline"
-                      onClick={() => {
-                        if (file) {
-                          setIsParsing(true);
-                          setParseError(null);
-                          receiptsApi
-                            .parse(file)
-                            .then((res) => {
-                              setParseResult(res);
-                              setIsParsing(false);
-                              if (res.items && res.parseConfidence !== 'failed') {
-                                setItems(
-                                  res.items.map((pi: ParsedItem) => ({
-                                    _key: crypto.randomUUID(),
-                                    name: pi.name,
-                                    quantity: pi.quantity,
-                                    unit: pi.unit ?? undefined,
-                                    pricePerUnit: pi.pricePerUnit,
-                                    totalPrice: pi.totalPrice,
-                                    itemCategoryId: null,
-                                  })),
-                                );
-                              }
-                            })
-                            .catch(() => {
-                              setParseError('Не вдалось розпізнати чек');
-                              setIsParsing(false);
-                            });
-                        }
-                      }}
-                    >
-                      Спробувати ще раз
-                    </button>
-                    <span>·</span>
-                    <button
-                      type="button"
-                      className="underline"
-                      onClick={() => {
-                        setItems([]);
-                        setParseError(null);
-                      }}
-                    >
-                      Ввести вручну
-                    </button>
+              {/* Dedup: info if duplicates without price conflicts */}
+              {parseResult?.meta && parseResult.meta.duplicatesRemoved > 0 && !parseResult.meta.hasPriceConflicts && (
+                <div
+                  className="mb-3 flex items-start gap-2 rounded-md px-3 py-[10px] text-[13px]"
+                  style={{ backgroundColor: '#E6F1FB', color: '#0C447C' }}
+                >
+                  <Info size={16} className="mt-0.5 flex-shrink-0" />
+                  Знайдено та видалено {parseResult.meta.duplicatesRemoved} дублікат(ів). Якщо товари видалено помилково — додайте їх вручну.
+                </div>
+              )}
+
+              {/* Dedup: warning if duplicates with price conflicts */}
+              {parseResult?.meta && parseResult.meta.hasPriceConflicts && (
+                <div
+                  className="mb-3 flex items-start gap-2 rounded-md px-3 py-[10px] text-[13px]"
+                  style={{ backgroundColor: '#FAEEDA', color: '#854F0B' }}
+                >
+                  <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                  Знайдено товари з однаковою назвою але різною ціною — перевірте список і виправте якщо потрібно.
+                </div>
+              )}
+
+              {/* Conflict detail cards */}
+              {parseResult?.meta?.priceConflicts.map((c, idx) => (
+                <div
+                  key={`${c.name}-${idx}`}
+                  className="mb-3 rounded-lg p-3"
+                  style={{ backgroundColor: '#F7F7F7' }}
+                >
+                  <p className="mb-2 text-[11px] uppercase tracking-wide text-[#9ca3af]">Конфлікт дедуплікації</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-md bg-white p-2" style={{ border: '0.5px solid #3B6D11' }}>
+                      <p className="text-[11px] font-medium" style={{ color: '#3B6D11' }}>
+                        Збережено (фото {c.saved.photoIndex + 1})
+                      </p>
+                      <p className="mt-0.5 text-[13px] text-[#1a1a1a]">
+                        {c.name} · {c.saved.pricePerUnit} ₴
+                      </p>
+                    </div>
+                    <div className="rounded-md bg-white p-2 opacity-60" style={{ border: '0.5px solid #e5e7eb' }}>
+                      <p className="text-[11px] text-[#9ca3af]">Видалено (фото {c.removed.photoIndex + 1})</p>
+                      <p className="mt-0.5 text-[13px] text-[#1a1a1a]">
+                        {c.name} · {c.removed.pricePerUnit} ₴
+                      </p>
+                    </div>
                   </div>
+                </div>
+              ))}
+
+              {/* Partial confidence (legacy banner — show when parseError but not full failure) */}
+              {parseError && parseResult?.meta?.photosSucceeded !== 0 && (
+                <div
+                  className="mb-3 rounded-md bg-[#FCEBEB] px-3 py-2 text-[13px] text-[#A32D2D]"
+                >
+                  {parseError}
                 </div>
               )}
 
@@ -784,6 +1032,7 @@ export default function ReceiptUploadPage() {
                 itemCategories={itemCategories}
                 currency={parsedCurrency}
                 onChange={setItems}
+                conflictNames={conflictNames}
               />
 
               {/* Total */}
@@ -830,6 +1079,8 @@ export default function ReceiptUploadPage() {
                   Підтвердити
                 </Button>
               </div>
+              </>
+              )}
             </div>
           )}
 

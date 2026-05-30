@@ -8,9 +8,9 @@ import type {
 } from '@/src/types/receipt.types';
 
 export const receiptsApi = {
-  parse: (file: File): Promise<ParsedReceiptDto> => {
+  parse: (files: File[]): Promise<ParsedReceiptDto> => {
     const form = new FormData();
-    form.append('image', file);
+    for (const file of files) form.append('images', file);
     return apiClient.post<ParsedReceiptDto>('/receipts/parse', form);
   },
   getAll: (page = 1, limit = 20): Promise<ReceiptsListResponse> =>

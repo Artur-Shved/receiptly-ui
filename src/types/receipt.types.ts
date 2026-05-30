@@ -70,6 +70,28 @@ export interface ParsedItem {
   pricePerUnit: number;
   totalPrice: number;
   category: string | null;
+  photoIndex?: number;
+}
+
+export interface PriceConflictEntry {
+  photoIndex: number;
+  pricePerUnit: number;
+}
+
+export interface PriceConflict {
+  name: string;
+  saved: PriceConflictEntry;
+  removed: PriceConflictEntry;
+}
+
+export interface ParseMeta {
+  photosTotal: number;
+  photosSucceeded: number;
+  photosFailed: number;
+  duplicatesRemoved: number;
+  hasPriceConflicts: boolean;
+  failedIndices: number[];
+  priceConflicts: PriceConflict[];
 }
 
 export interface ParsedReceiptDto {
@@ -79,4 +101,5 @@ export interface ParsedReceiptDto {
   currency: string;
   items: ParsedItem[];
   parseConfidence: 'full' | 'partial' | 'failed';
+  meta?: ParseMeta;
 }
