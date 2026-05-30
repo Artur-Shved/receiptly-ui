@@ -137,7 +137,7 @@ export default function HomePage() {
   const monthlyStats = useMemo(() => {
     const monthReceipts = receipts.filter((r) => r.receiptDate.startsWith(currentYearMonth));
     return {
-      total: monthReceipts.reduce((sum, r) => sum + r.totalAmount, 0),
+      total: monthReceipts.reduce((sum, r) => sum + Number(r.totalAmount ?? 0), 0),
       count: monthReceipts.length,
     };
   }, [receipts, currentYearMonth]);
