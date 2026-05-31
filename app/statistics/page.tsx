@@ -86,6 +86,7 @@ export default function StatisticsPage() {
   const [timeline, setTimeline] = useState<TimelineResponse | null>(null);
   const [byTxCat, setByTxCat] = useState<BreakdownResponse | null>(null);
   const [byStore, setByStore] = useState<BreakdownResponse | null>(null);
+  const [byPaymentMethod, setByPaymentMethod] = useState<BreakdownResponse | null>(null);
   const [byItemCat, setByItemCat] = useState<BreakdownResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,13 +121,15 @@ export default function StatisticsPage() {
       statisticsApi.getTimeline(filters),
       statisticsApi.getByTransactionCategory(filters),
       statisticsApi.getByStore(filters),
+      statisticsApi.getByPaymentMethod(filters),
       statisticsApi.getByItemCategory(filters),
     ])
-      .then(([s, t, bt, bs, bi]) => {
+      .then(([s, t, bt, bs, bp, bi]) => {
         setSummary(s);
         setTimeline(t);
         setByTxCat(bt);
         setByStore(bs);
+        setByPaymentMethod(bp);
         setByItemCat(bi);
       })
       .catch((err) => {
@@ -273,6 +276,15 @@ export default function StatisticsPage() {
                     onBack={() => setAllView(null)}
                   />
                 )}
+                {allView === 'payment-method' && (
+                  <BreakdownAllCard
+                    title="По методах оплати — всі"
+                    items={byPaymentMethod?.items ?? []}
+                    countSuffix={(n) => `${n} чеків`}
+                    onItemClick={(item) => setDrillDown({ kind: 'payment-method', item })}
+                    onBack={() => setAllView(null)}
+                  />
+                )}
                 {allView === 'item-category' && (
                   <BreakdownAllCard
                     title="По товарах — всі"
@@ -283,7 +295,7 @@ export default function StatisticsPage() {
                   />
                 )}
                 {allView === null && (
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                     <BreakdownSection
                       title="По категоріях"
                       items={byTxCat?.items ?? null}
@@ -299,6 +311,14 @@ export default function StatisticsPage() {
                       countSuffix={(n) => `${n} чеків`}
                       onItemClick={(item) => setDrillDown({ kind: 'store', item })}
                       onShowAll={() => setAllView('store')}
+                    />
+                    <BreakdownSection
+                      title="По методах оплати"
+                      items={byPaymentMethod?.items ?? null}
+                      isLoading={isLoading}
+                      countSuffix={(n) => `${n} чеків`}
+                      onItemClick={(item) => setDrillDown({ kind: 'payment-method', item })}
+                      onShowAll={() => setAllView('payment-method')}
                     />
                     <BreakdownSection
                       title="По товарах"

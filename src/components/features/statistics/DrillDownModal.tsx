@@ -12,7 +12,7 @@ import type {
   StatisticsFilters,
 } from '@/src/types/statistics.types';
 
-export type DrillKind = 'transaction-category' | 'store' | 'item-category';
+export type DrillKind = 'transaction-category' | 'store' | 'item-category' | 'payment-method';
 
 interface Props {
   kind: DrillKind;
@@ -39,6 +39,7 @@ const HEADERS: Record<DrillKind, { suffix: string; cols: string[] }> = {
   'transaction-category': { suffix: 'чеків', cols: ['Магазин', 'Дата', 'Сума'] },
   store: { suffix: 'чеків', cols: ['Дата', 'Категорія', 'Сума'] },
   'item-category': { suffix: 'товарів', cols: ['Назва', 'Магазин', 'К-сть', 'Сума'] },
+  'payment-method': { suffix: 'чеків', cols: ['Магазин', 'Дата', 'Сума'] },
 };
 
 export function DrillDownModal({ kind, item, filters, onClose }: Props) {
@@ -59,6 +60,10 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
           setTotal(res.total);
         } else if (kind === 'store') {
           const res = await statisticsApi.getReceiptsByStore(item.id ?? '', filters);
+          setReceipts(res.items);
+          setTotal(res.total);
+        } else if (kind === 'payment-method') {
+          const res = await statisticsApi.getReceiptsByPaymentMethod(item.id, filters);
           setReceipts(res.items);
           setTotal(res.total);
         } else {
@@ -138,7 +143,7 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
                 ))}
               </div>
 
-              {kind === 'transaction-category' && receipts?.map((r) => (
+              {(kind === 'transaction-category' || kind === 'payment-method') && receipts?.map((r) => (
                 <div
                   key={r.id}
                   className="grid items-center border-b border-[#e5e7eb] px-4 py-2.5"

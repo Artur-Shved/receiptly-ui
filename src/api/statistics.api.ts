@@ -36,6 +36,9 @@ export const statisticsApi = {
   getByStore: (filters: StatisticsFilters): Promise<BreakdownResponse> =>
     apiClient.get<BreakdownResponse>(`/statistics/by-store?${buildQuery(filters)}`),
 
+  getByPaymentMethod: (filters: StatisticsFilters): Promise<BreakdownResponse> =>
+    apiClient.get<BreakdownResponse>(`/statistics/by-payment-method?${buildQuery(filters)}`),
+
   getByItemCategory: (filters: StatisticsFilters): Promise<BreakdownResponse> =>
     apiClient.get<BreakdownResponse>(
       `/statistics/by-item-category?${buildQuery(filters)}`,
@@ -58,6 +61,14 @@ export const statisticsApi = {
   ): Promise<DrillDownResponse<ReceiptDrillDownItem>> =>
     apiClient.get<DrillDownResponse<ReceiptDrillDownItem>>(
       `/statistics/by-store/${storeId}/receipts?${buildQuery(filters)}`,
+    ),
+
+  getReceiptsByPaymentMethod: (
+    paymentMethodId: string | null,
+    filters: StatisticsFilters,
+  ): Promise<DrillDownResponse<ReceiptDrillDownItem>> =>
+    apiClient.get<DrillDownResponse<ReceiptDrillDownItem>>(
+      `/statistics/by-payment-method/${paymentMethodId ?? NULL_BUCKET_ID}/receipts?${buildQuery(filters)}`,
     ),
 
   getItemsByItemCategory: (
