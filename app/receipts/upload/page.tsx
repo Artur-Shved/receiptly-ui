@@ -193,12 +193,13 @@ function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
       onClick={onCancel}
     >
       <div
-        className="w-[380px] rounded-xl bg-white p-5 shadow-xl"
+        className="w-[380px] max-w-full overflow-y-auto rounded-xl bg-white p-5 shadow-xl"
+        style={{ maxHeight: 'calc(100vh - 32px)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">

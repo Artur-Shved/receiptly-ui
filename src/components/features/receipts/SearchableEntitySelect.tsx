@@ -194,7 +194,7 @@ export function SearchableEntitySelect<T extends EntityLike>({
           </div>
 
           <div className="absolute left-0 right-0 top-[42px] z-30 overflow-hidden rounded-lg border border-[#e5e7eb] bg-white shadow-lg">
-            <div className="max-h-[240px] overflow-y-auto">
+            <div className="max-h-[180px] overflow-y-auto">
               {matches.length === 0 && !canCreate && (
                 <div className="px-3 py-3 text-[13px] text-[#9ca3af]">Нічого не знайдено</div>
               )}
