@@ -22,6 +22,7 @@ import {
 import { TopNav } from '@/src/components/features/home/TopNav';
 import { Button } from '@/src/components/ui/Button';
 import { SearchableStoreSelect } from '@/src/components/features/receipts/SearchableStoreSelect';
+import { SearchableEntitySelect } from '@/src/components/features/receipts/SearchableEntitySelect';
 import { useLogout } from '@/src/hooks/useAuth';
 import { useStores } from '@/src/hooks/useStores';
 import { usePaymentMethods } from '@/src/hooks/usePaymentMethods';
@@ -312,8 +313,8 @@ export default function QrUploadPage() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const { stores, createStore } = useStores();
-  const { methods } = usePaymentMethods();
-  const { categories: txCategories } = useTransactionCategories();
+  const { methods, createMethod } = usePaymentMethods();
+  const { categories: txCategories, createCategory: createTxCategory } = useTransactionCategories();
   const { categories: itemCategories } = useItemCategories();
 
   const [step, setStep] = useState<Step>('upload');
@@ -692,18 +693,17 @@ export default function QrUploadPage() {
                   >
                     Метод оплати *
                   </label>
-                  <select
-                    value={paymentMethodId ?? ''}
-                    onChange={(e) => setPaymentMethodId(e.target.value || null)}
-                    className="h-[38px] w-full rounded-lg px-3 text-[13px] outline-none focus:ring-1 focus:ring-[#1a1a1a]"
-                    style={{
-                      border: `0.5px solid ${showFieldErrors && !paymentMethodId ? '#A32D2D' : '#e5e7eb'}`,
-                      backgroundColor: showFieldErrors && !paymentMethodId ? '#FCEBEB' : '#fff',
+                  <SearchableEntitySelect
+                    value={paymentMethodId}
+                    onChange={setPaymentMethodId}
+                    items={methods}
+                    onCreate={async (name) => {
+                      const { method } = await createMethod(name);
+                      return method ?? null;
                     }}
-                  >
-                    <option value="">Оберіть...</option>
-                    {methods.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                  </select>
+                    placeholder="Оберіть або введіть"
+                    createOptionLabel={(q) => `Додати «${q}» як новий метод оплати`}
+                  />
                 </div>
                 <div>
                   <label
@@ -712,18 +712,17 @@ export default function QrUploadPage() {
                   >
                     Категорія транзакції *
                   </label>
-                  <select
-                    value={transactionCategoryId ?? ''}
-                    onChange={(e) => setTransactionCategoryId(e.target.value || null)}
-                    className="h-[38px] w-full rounded-lg px-3 text-[13px] outline-none focus:ring-1 focus:ring-[#1a1a1a]"
-                    style={{
-                      border: `0.5px solid ${showFieldErrors && !transactionCategoryId ? '#A32D2D' : '#e5e7eb'}`,
-                      backgroundColor: showFieldErrors && !transactionCategoryId ? '#FCEBEB' : '#fff',
+                  <SearchableEntitySelect
+                    value={transactionCategoryId}
+                    onChange={setTransactionCategoryId}
+                    items={txCategories}
+                    onCreate={async (name) => {
+                      const { category } = await createTxCategory(name);
+                      return category ?? null;
                     }}
-                  >
-                    <option value="">Оберіть...</option>
-                    {txCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                    placeholder="Оберіть або введіть"
+                    createOptionLabel={(q) => `Додати «${q}» як нову категорію`}
+                  />
                 </div>
               </div>
 

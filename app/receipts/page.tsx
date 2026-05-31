@@ -16,6 +16,7 @@ import {
 import { TopNav } from '@/src/components/features/home/TopNav';
 import { Button } from '@/src/components/ui/Button';
 import { SearchableStoreSelect } from '@/src/components/features/receipts/SearchableStoreSelect';
+import { SearchableEntitySelect } from '@/src/components/features/receipts/SearchableEntitySelect';
 import { AddReceiptChoiceModal } from '@/src/components/features/receipts/AddReceiptChoiceModal';
 import { useLogout } from '@/src/hooks/useAuth';
 import { useReceipts } from '@/src/hooks/useReceipts';
@@ -398,8 +399,8 @@ interface EditModalProps {
 
 function EditModal({ receipt, onClose, onSave }: EditModalProps) {
   const { stores, createStore } = useStores();
-  const { methods } = usePaymentMethods();
-  const { categories: txCategories } = useTransactionCategories();
+  const { methods, createMethod } = usePaymentMethods();
+  const { categories: txCategories, createCategory: createTxCategory } = useTransactionCategories();
   const { categories: itemCategories } = useItemCategories();
 
   const [storeId, setStoreId] = useState<string | null>(receipt.storeId);
@@ -477,25 +478,29 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
             </div>
             <div>
               <label className="mb-1 block text-[12px] text-gray-500">Метод оплати</label>
-              <select
-                value={paymentMethodId ?? ''}
-                onChange={(e) => setPaymentMethodId(e.target.value || null)}
-                className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] text-[#1a1a1a] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
-              >
-                <option value="">Без методу</option>
-                {methods.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
+              <SearchableEntitySelect
+                value={paymentMethodId}
+                onChange={setPaymentMethodId}
+                items={methods}
+                onCreate={async (name) => {
+                  const { method } = await createMethod(name);
+                  return method ?? null;
+                }}
+                createOptionLabel={(q) => `Додати «${q}» як новий метод оплати`}
+              />
             </div>
             <div>
               <label className="mb-1 block text-[12px] text-gray-500">Категорія транзакції</label>
-              <select
-                value={transactionCategoryId ?? ''}
-                onChange={(e) => setTransactionCategoryId(e.target.value || null)}
-                className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] text-[#1a1a1a] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
-              >
-                <option value="">Без категорії</option>
-                {txCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <SearchableEntitySelect
+                value={transactionCategoryId}
+                onChange={setTransactionCategoryId}
+                items={txCategories}
+                onCreate={async (name) => {
+                  const { category } = await createTxCategory(name);
+                  return category ?? null;
+                }}
+                createOptionLabel={(q) => `Додати «${q}» як нову категорію`}
+              />
             </div>
             <div>
               <label className="mb-1 block text-[12px] text-gray-500">Дата покупки</label>

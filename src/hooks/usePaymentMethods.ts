@@ -26,11 +26,11 @@ export function usePaymentMethods() {
   useEffect(() => { load(); }, [load]);
 
   const createMethod = useCallback(
-    async (name: string): Promise<{ error?: string }> => {
+    async (name: string): Promise<{ method?: PaymentMethod; error?: string }> => {
       try {
         const created = await paymentMethodsApi.create({ name });
         setMethods((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
-        return {};
+        return { method: created };
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {
           return { error: 'Метод оплати з такою назвою вже існує' };
