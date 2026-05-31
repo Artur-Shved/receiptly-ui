@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { BreakdownItem } from '@/src/types/statistics.types';
 
 interface Props {
@@ -24,7 +26,9 @@ export function BreakdownSection({
   onItemClick,
   maxRows = 5,
 }: Props) {
-  const visible = items?.slice(0, maxRows) ?? [];
+  const [expanded, setExpanded] = useState(false);
+  const hasMore = items != null && items.length > maxRows;
+  const visible = expanded ? items ?? [] : items?.slice(0, maxRows) ?? [];
   const maxAmount = visible.length > 0 ? Math.max(...visible.map((i) => i.totalAmount)) : 0;
 
   return (
@@ -34,8 +38,22 @@ export function BreakdownSection({
     >
       <div className="flex items-center justify-between border-b border-[#e5e7eb] px-4 py-3">
         <p className="text-[13px] font-medium text-[#1a1a1a]">{title}</p>
-        {items && items.length > maxRows && (
-          <span className="text-[12px] text-[#9ca3af]">+{items.length - maxRows} ще</span>
+        {hasMore && (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="flex items-center gap-1 rounded-md px-2 py-0.5 text-[12px] text-[#1a1a1a] hover:bg-[#F7F7F7]"
+          >
+            {expanded ? (
+              <>
+                Згорнути <ChevronUp size={12} />
+              </>
+            ) : (
+              <>
+                +{items!.length - maxRows} ще <ChevronDown size={12} />
+              </>
+            )}
+          </button>
         )}
       </div>
 
