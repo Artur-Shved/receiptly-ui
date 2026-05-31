@@ -25,12 +25,14 @@ import { usePaymentMethods } from '@/src/hooks/usePaymentMethods';
 import { useTransactionCategories } from '@/src/hooks/useTransactionCategories';
 import { useItemCategories } from '@/src/hooks/useItemCategories';
 import { receiptsApi } from '@/src/api/receipts.api';
+import { extractPdfPagesAsImages } from '@/src/lib/pdf-to-images';
 import type { ParsedReceiptDto, ParsedItem, CreateReceiptItemDto } from '@/src/types/receipt.types';
 import type { ItemCategory } from '@/src/types/item-category.types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const PDF_TYPE = 'application/pdf';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_PHOTOS = 10;
 const UNITS = ['шт', 'кг', 'л', 'м', 'г'];
@@ -491,6 +493,7 @@ export default function ReceiptUploadPage() {
   // Step 1 — photo list
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [isProcessingPdf, setIsProcessingPdf] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Step 2 — parse state
@@ -521,36 +524,73 @@ export default function ReceiptUploadPage() {
 
   // ── Photo list management ────────────────────────────────────────────────
 
+  /** Appends a single image file to the photos list with all validation. */
+  const appendImageFile = (
+    next: PhotoItem[],
+    f: File,
+    pushError: (msg: string) => void,
+  ): PhotoItem[] => {
+    if (f.size > MAX_FILE_SIZE) {
+      pushError('Файл занадто великий. Максимум 10 MB.');
+      return next;
+    }
+    if (next.length >= MAX_PHOTOS) {
+      pushError('Максимум 10 фотографій для одного чеку');
+      return next;
+    }
+    return [
+      ...next,
+      { id: crypto.randomUUID(), file: f, previewUrl: URL.createObjectURL(f), status: 'waiting' },
+    ];
+  };
+
   const addPhotos = useCallback(
-    (selected: FileList | File[]) => {
+    async (selected: FileList | File[]) => {
       setFileError(null);
       const incoming = Array.from(selected);
       if (incoming.length === 0) return;
 
-      setPhotos((prev) => {
-        let next = [...prev];
-        for (const f of incoming) {
-          if (!ACCEPTED_TYPES.includes(f.type)) {
-            setFileError('Підтримуються тільки JPG, PNG, WebP файли');
-            continue;
+      // Process inputs sequentially so PDF expansion respects the running
+      // photo count and the order matches the user's pick order.
+      let next: PhotoItem[] = [...photos];
+      let pendingError: string | null = null;
+      const pushError = (msg: string) => { pendingError = msg; };
+
+      for (const f of incoming) {
+        if (f.type === PDF_TYPE) {
+          if (f.size > MAX_FILE_SIZE) { pushError('PDF занадто великий. Максимум 10 MB.'); continue; }
+          const slotsLeft = MAX_PHOTOS - next.length;
+          if (slotsLeft <= 0) { pushError('Максимум 10 фотографій для одного чеку'); break; }
+          try {
+            setIsProcessingPdf(true);
+            const { files: pages, truncated } = await extractPdfPagesAsImages(f, {
+              maxPages: slotsLeft,
+            });
+            for (const pageFile of pages) {
+              next = appendImageFile(next, pageFile, pushError);
+            }
+            if (truncated) {
+              pushError(`PDF більше 10 сторінок — додано перші ${pages.length}`);
+            }
+          } catch (err) {
+            console.error('PDF parse error', err);
+            pushError('Не вдалось прочитати PDF. Спробуйте інший файл.');
+          } finally {
+            setIsProcessingPdf(false);
           }
-          if (f.size > MAX_FILE_SIZE) {
-            setFileError('Файл занадто великий. Максимум 10 MB.');
-            continue;
-          }
-          if (next.length >= MAX_PHOTOS) {
-            setFileError('Максимум 10 фотографій для одного чеку');
-            break;
-          }
-          next = [
-            ...next,
-            { id: crypto.randomUUID(), file: f, previewUrl: URL.createObjectURL(f), status: 'waiting' },
-          ];
+          continue;
         }
-        return next;
-      });
+        if (!ACCEPTED_TYPES.includes(f.type)) {
+          pushError('Підтримуються JPG, PNG, WebP, PDF файли');
+          continue;
+        }
+        next = appendImageFile(next, f, pushError);
+      }
+
+      setPhotos(next);
+      if (pendingError) setFileError(pendingError);
     },
-    [],
+    [photos],
   );
 
   const removePhoto = (id: string) => {
@@ -564,8 +604,9 @@ export default function ReceiptUploadPage() {
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      addPhotos(e.target.files);
+      const list = e.target.files;
       e.target.value = '';
+      void addPhotos(list);
     }
   };
 
@@ -717,7 +758,7 @@ export default function ReceiptUploadPage() {
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
-                  if (e.dataTransfer.files) addPhotos(e.dataTransfer.files);
+                  if (e.dataTransfer.files) void addPhotos(e.dataTransfer.files);
                 }}
               >
                 {photos.map((p, idx) => (
@@ -790,11 +831,17 @@ export default function ReceiptUploadPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
                 multiple
                 className="hidden"
                 onChange={handleFileInputChange}
               />
+
+              {isProcessingPdf && (
+                <p className="mt-3 rounded-md bg-[#E6F1FB] px-3 py-2 text-[13px] text-[#0C447C]">
+                  Обробляємо PDF — кожна сторінка стане окремим фото...
+                </p>
+              )}
 
               {fileError && (
                 <p className="mt-3 rounded-md bg-[#FCEBEB] px-3 py-2 text-[13px] text-[#A32D2D]">
@@ -803,10 +850,12 @@ export default function ReceiptUploadPage() {
               )}
 
               <div className="mt-6 flex items-center justify-between">
-                <p className="text-[12px] text-[#9ca3af]">Порядок фото впливає на дедуплікацію</p>
+                <p className="text-[12px] text-[#9ca3af]">
+                  JPG / PNG / WebP / PDF · порядок впливає на дедуплікацію
+                </p>
                 <Button
                   fullWidth={false}
-                  disabled={photos.length === 0}
+                  disabled={photos.length === 0 || isProcessingPdf}
                   className="py-2 px-6 text-[13px]"
                   onClick={handleStep1Next}
                 >
