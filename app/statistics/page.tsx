@@ -116,7 +116,9 @@ export default function StatisticsPage() {
   useEffect(() => {
     setIsLoading(true);
     setError(null);
-    Promise.all([
+    // allSettled so a single endpoint failure (e.g. BE not yet restarted with
+    // the new /by-payment-method route) doesn't blank out the whole page.
+    Promise.allSettled([
       statisticsApi.getSummary(filters),
       statisticsApi.getTimeline(filters),
       statisticsApi.getByTransactionCategory(filters),
@@ -125,15 +127,18 @@ export default function StatisticsPage() {
       statisticsApi.getByItemCategory(filters),
     ])
       .then(([s, t, bt, bs, bp, bi]) => {
-        setSummary(s);
-        setTimeline(t);
-        setByTxCat(bt);
-        setByStore(bs);
-        setByPaymentMethod(bp);
-        setByItemCat(bi);
-      })
-      .catch((err) => {
-        setError(err instanceof ApiError ? err.message : 'Помилка завантаження');
+        if (s.status === 'fulfilled') setSummary(s.value);
+        if (t.status === 'fulfilled') setTimeline(t.value);
+        if (bt.status === 'fulfilled') setByTxCat(bt.value);
+        if (bs.status === 'fulfilled') setByStore(bs.value);
+        if (bp.status === 'fulfilled') setByPaymentMethod(bp.value);
+        if (bi.status === 'fulfilled') setByItemCat(bi.value);
+        // Surface an error only if summary (the critical first call) failed —
+        // partial-section errors render as in-card empty states.
+        if (s.status === 'rejected') {
+          const reason = s.reason;
+          setError(reason instanceof ApiError ? reason.message : 'Помилка завантаження');
+        }
       })
       .finally(() => setIsLoading(false));
   }, [filters]);
