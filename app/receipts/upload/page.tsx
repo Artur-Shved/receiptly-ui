@@ -607,11 +607,17 @@ export default function ReceiptUploadPage() {
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const list = e.target.files;
+    const files = e.target.files;
+    if (!files || files.length === 0) {
       e.target.value = '';
-      void addPhotos(list);
+      return;
     }
+    // Snapshot to a plain array BEFORE resetting the input — clearing
+    // input.value can detach the FileList in some browsers, leaving the
+    // async addPhotos with nothing to read.
+    const filesArray = Array.from(files);
+    e.target.value = '';
+    void addPhotos(filesArray);
   };
 
   const handleStep1Next = useCallback(() => {
