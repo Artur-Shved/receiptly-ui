@@ -244,13 +244,14 @@ interface EditableItem extends CreateReceiptItemDto {
 interface ItemSubModalProps {
   item: EditableItem | null;
   itemCategories: ItemCategory[];
+  onCreateCategory: (name: string) => Promise<ItemCategory | null>;
   onSave: (item: EditableItem) => void;
   onCancel: () => void;
 }
 
 const UNITS = ['шт', 'кг', 'л', 'м', 'г'];
 
-function ItemSubModal({ item, itemCategories, onSave, onCancel }: ItemSubModalProps) {
+function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel }: ItemSubModalProps) {
   const initialQty = item?.quantity ?? 1;
   const initialPrice = item?.pricePerUnit ?? 0;
   const initialTotal = item?.totalPrice ?? Math.round(initialQty * initialPrice * 100) / 100;
@@ -372,11 +373,14 @@ function ItemSubModal({ item, itemCategories, onSave, onCancel }: ItemSubModalPr
           </div>
           <div>
             <label className="mb-1 block text-[12px] text-gray-500">Категорія</label>
-            <select value={itemCategoryId} onChange={(e) => setItemCategoryId(e.target.value)}
-              className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]">
-              <option value="">Без категорії</option>
-              {itemCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <SearchableEntitySelect
+              value={itemCategoryId || null}
+              onChange={(id) => setItemCategoryId(id ?? '')}
+              items={itemCategories}
+              onCreate={onCreateCategory}
+              placeholder="Без категорії"
+              createOptionLabel={(q) => `Додати «${q}» як нову категорію товару`}
+            />
           </div>
         </div>
 
@@ -401,7 +405,7 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
   const { stores, createStore } = useStores();
   const { methods, createMethod } = usePaymentMethods();
   const { categories: txCategories, createCategory: createTxCategory } = useTransactionCategories();
-  const { categories: itemCategories } = useItemCategories();
+  const { categories: itemCategories, createCategory: createItemCategory } = useItemCategories();
 
   const [storeId, setStoreId] = useState<string | null>(receipt.storeId);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(receipt.paymentMethodId);
@@ -554,6 +558,10 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
         <ItemSubModal
           item={itemForSubModal}
           itemCategories={itemCategories}
+          onCreateCategory={async (name) => {
+            const { category } = await createItemCategory(name);
+            return category ?? null;
+          }}
           onSave={handleSaveItem}
           onCancel={() => setSubModalItem(null)}
         />

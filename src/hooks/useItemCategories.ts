@@ -38,11 +38,11 @@ export function useItemCategories() {
   }, [load]);
 
   const createCategory = useCallback(
-    async (name: string): Promise<{ error?: string }> => {
+    async (name: string): Promise<{ category?: ItemCategory; error?: string }> => {
       try {
         const created = await itemCategoriesApi.create({ name });
         setCategories((prev) => sortCategories([...prev, created]));
-        return {};
+        return { category: created };
       } catch (err) {
         if (err instanceof ApiError && err.status === 409) {
           return { error: 'Категорія з такою назвою вже існує' };
