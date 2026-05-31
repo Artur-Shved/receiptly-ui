@@ -14,6 +14,7 @@ import { StatsGrid } from '@/src/components/features/statistics/StatsGrid';
 import { TimelineChart } from '@/src/components/features/statistics/TimelineChart';
 import { DonutChart } from '@/src/components/features/statistics/DonutChart';
 import { BreakdownSection } from '@/src/components/features/statistics/BreakdownSection';
+import { BreakdownAllCard } from '@/src/components/features/statistics/BreakdownAllCard';
 import { FiltersModal } from '@/src/components/features/statistics/FiltersModal';
 import { FiltersTags, FilterButton } from '@/src/components/features/statistics/FiltersTags';
 import { DrillDownModal, type DrillKind } from '@/src/components/features/statistics/DrillDownModal';
@@ -91,6 +92,10 @@ export default function StatisticsPage() {
 
   // Drill-down state
   const [drillDown, setDrillDown] = useState<{ kind: DrillKind; item: BreakdownItem } | null>(null);
+
+  // "Show all" view-mode — replaces the 3-column grid with a single full-width
+  // card listing every item of the chosen breakdown.
+  const [allView, setAllView] = useState<DrillKind | null>(null);
 
   const filters: StatisticsFilters = useMemo(
     () => ({
@@ -249,28 +254,62 @@ export default function StatisticsPage() {
                 <TimelineChart data={timeline} isLoading={isLoading} />
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-4">
-                <BreakdownSection
-                  title="По категоріях"
-                  items={byTxCat?.items ?? null}
-                  isLoading={isLoading}
-                  countSuffix={(n) => `${n} чеків`}
-                  onItemClick={(item) => setDrillDown({ kind: 'transaction-category', item })}
-                />
-                <BreakdownSection
-                  title="По магазинах"
-                  items={byStore?.items ?? null}
-                  isLoading={isLoading}
-                  countSuffix={(n) => `${n} чеків`}
-                  onItemClick={(item) => setDrillDown({ kind: 'store', item })}
-                />
-                <BreakdownSection
-                  title="По товарах"
-                  items={byItemCat?.items ?? null}
-                  isLoading={isLoading}
-                  countSuffix={(n) => `${n} од.`}
-                  onItemClick={(item) => setDrillDown({ kind: 'item-category', item })}
-                />
+              <div className="mt-4">
+                {allView === 'transaction-category' && (
+                  <BreakdownAllCard
+                    title="По категоріях — всі"
+                    items={byTxCat?.items ?? []}
+                    countSuffix={(n) => `${n} чеків`}
+                    onItemClick={(item) => setDrillDown({ kind: 'transaction-category', item })}
+                    onBack={() => setAllView(null)}
+                  />
+                )}
+                {allView === 'store' && (
+                  <BreakdownAllCard
+                    title="По магазинах — всі"
+                    items={byStore?.items ?? []}
+                    countSuffix={(n) => `${n} чеків`}
+                    onItemClick={(item) => setDrillDown({ kind: 'store', item })}
+                    onBack={() => setAllView(null)}
+                  />
+                )}
+                {allView === 'item-category' && (
+                  <BreakdownAllCard
+                    title="По товарах — всі"
+                    items={byItemCat?.items ?? []}
+                    countSuffix={(n) => `${n} од.`}
+                    onItemClick={(item) => setDrillDown({ kind: 'item-category', item })}
+                    onBack={() => setAllView(null)}
+                  />
+                )}
+                {allView === null && (
+                  <div className="grid grid-cols-3 gap-4">
+                    <BreakdownSection
+                      title="По категоріях"
+                      items={byTxCat?.items ?? null}
+                      isLoading={isLoading}
+                      countSuffix={(n) => `${n} чеків`}
+                      onItemClick={(item) => setDrillDown({ kind: 'transaction-category', item })}
+                      onShowAll={() => setAllView('transaction-category')}
+                    />
+                    <BreakdownSection
+                      title="По магазинах"
+                      items={byStore?.items ?? null}
+                      isLoading={isLoading}
+                      countSuffix={(n) => `${n} чеків`}
+                      onItemClick={(item) => setDrillDown({ kind: 'store', item })}
+                      onShowAll={() => setAllView('store')}
+                    />
+                    <BreakdownSection
+                      title="По товарах"
+                      items={byItemCat?.items ?? null}
+                      isLoading={isLoading}
+                      countSuffix={(n) => `${n} од.`}
+                      onItemClick={(item) => setDrillDown({ kind: 'item-category', item })}
+                      onShowAll={() => setAllView('item-category')}
+                    />
+                  </div>
+                )}
               </div>
             </>
           )}
