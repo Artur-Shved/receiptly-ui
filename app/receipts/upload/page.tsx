@@ -566,6 +566,9 @@ export default function ReceiptUploadPage() {
             const { files: pages, truncated } = await extractPdfPagesAsImages(f, {
               maxPages: slotsLeft,
             });
+            if (pages.length === 0) {
+              pushError('PDF не містить сторінок або їх не вдалось зрендерити');
+            }
             for (const pageFile of pages) {
               next = appendImageFile(next, pageFile, pushError);
             }
@@ -574,7 +577,8 @@ export default function ReceiptUploadPage() {
             }
           } catch (err) {
             console.error('PDF parse error', err);
-            pushError('Не вдалось прочитати PDF. Спробуйте інший файл.');
+            const msg = err instanceof Error ? err.message : String(err);
+            pushError(`Не вдалось прочитати PDF: ${msg}`);
           } finally {
             setIsProcessingPdf(false);
           }

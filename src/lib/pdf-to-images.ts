@@ -29,7 +29,10 @@ export async function extractPdfPagesAsImages(
 
   const pdfjs = await import('pdfjs-dist');
   if (!workerInitialized) {
-    pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+    // Worker copied to public/ at install time (see scripts/copy-pdf-worker).
+    // Local same-origin URL avoids CORS / module-worker issues that hit some
+    // browsers when loading the worker from a CDN.
+    pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
     workerInitialized = true;
   }
 
