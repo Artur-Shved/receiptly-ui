@@ -148,13 +148,17 @@ function DetailsModal({ receipt, onClose, onEdit, onDelete }: DetailsModalProps)
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto py-8"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
       onClick={onClose}
     >
-      <div className="w-[640px] max-w-full rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="flex w-[640px] max-w-full flex-col rounded-xl bg-white shadow-xl"
+        style={{ maxHeight: 'calc(100vh - 32px)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-[#e5e7eb] p-5">
+        <div className="flex flex-shrink-0 items-start justify-between border-b border-[#e5e7eb] p-5">
           <div>
             <h2 className="text-[16px] font-medium text-[#1a1a1a]">{storeName} — {formatFullDate(receipt.receiptDate)}</h2>
             <p className="mt-0.5 text-[12px] text-[#9ca3af]">Чек #{receipt.id.slice(0, 8)}</p>
@@ -165,7 +169,7 @@ function DetailsModal({ receipt, onClose, onEdit, onDelete }: DetailsModalProps)
         </div>
 
         {/* Body */}
-        <div className="p-5">
+        <div className="flex-1 overflow-y-auto p-5">
           {/* Meta grid */}
           <div className="mb-5 grid grid-cols-2 gap-3">
             {[
@@ -217,7 +221,7 @@ function DetailsModal({ receipt, onClose, onEdit, onDelete }: DetailsModalProps)
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-[#e5e7eb] p-5">
+        <div className="flex flex-shrink-0 items-center justify-between border-t border-[#e5e7eb] p-5">
           <Button variant="danger" fullWidth={false} icon={<Trash2 size={14} />} className="py-2 px-[14px] text-[13px]" onClick={onDelete}>
             Видалити
           </Button>
@@ -456,15 +460,19 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
   const itemForSubModal: EditableItem | null = subModalItem === 'new' ? null : (subModalItem as EditableItem | null);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto py-8" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
-      <div className="w-[640px] max-w-full rounded-xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
+      <div
+        className="flex w-[640px] max-w-full flex-col rounded-xl bg-white shadow-xl"
+        style={{ maxHeight: 'calc(100vh - 32px)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#e5e7eb] p-5">
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-[#e5e7eb] p-5">
           <h2 className="text-[16px] font-medium text-[#1a1a1a]">Редагувати чек</h2>
           <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-[#F7F7F7]"><X size={16} /></button>
         </div>
 
-        <div className="p-5">
+        <div className="flex-1 overflow-y-auto p-5">
           {error && <p className="mb-4 rounded-md bg-[#FCEBEB] px-3 py-2 text-[13px] text-[#A32D2D]">{error}</p>}
 
           <div className="mb-5 grid grid-cols-2 gap-4">
@@ -546,7 +554,7 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
           )}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-[#e5e7eb] p-5">
+        <div className="flex flex-shrink-0 justify-end gap-2 border-t border-[#e5e7eb] p-5">
           <Button variant="secondary" fullWidth={false} onClick={onClose} className="py-2 px-4 text-[13px]">Скасувати</Button>
           <Button fullWidth={false} isLoading={isLoading} disabled={items.length === 0} onClick={handleSubmit} className="py-2 px-4 text-[13px]">
             Зберегти зміни
