@@ -208,7 +208,17 @@ function DetailsModal({ receipt, onClose, onEdit, onDelete }: DetailsModalProps)
                 <span><ItemCategoryBadge name={item.itemCategory?.name} /></span>
                 <span className="text-[13px] text-[#6b7280]">{item.quantity}{item.unit ? ` ${item.unit}` : ''}</span>
                 <span className="text-[13px] text-[#6b7280]">{item.pricePerUnit} {receipt.currency}</span>
-                <span className="text-right text-[13px] text-[#1a1a1a]">{item.totalPrice} {receipt.currency}</span>
+                <span className="text-right text-[13px] text-[#1a1a1a]">
+                  {item.discountAmount > 0 ? (
+                    <span className="flex flex-col items-end leading-tight">
+                      <span className="text-[11px] text-[#9ca3af] line-through">{item.originalAmount} {receipt.currency}</span>
+                      <span className="text-[11px]" style={{ color: '#A32D2D' }}>−{item.discountAmount} {receipt.currency}</span>
+                      <span className="font-medium">{item.totalPrice} {receipt.currency}</span>
+                    </span>
+                  ) : (
+                    <>{item.totalPrice} {receipt.currency}</>
+                  )}
+                </span>
               </div>
             ))}
           </div>
@@ -258,63 +268,70 @@ const UNITS = ['шт', 'кг', 'л', 'м', 'г'];
 function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel }: ItemSubModalProps) {
   const initialQty = item?.quantity ?? 1;
   const initialPrice = item?.pricePerUnit ?? 0;
-  const initialTotal = item?.totalPrice ?? Math.round(initialQty * initialPrice * 100) / 100;
+  const initialOriginal = item?.originalAmount ?? Math.round(initialQty * initialPrice * 100) / 100;
+  const initialDiscount = item?.discountAmount ?? 0;
   const initialAuto = Math.round(initialQty * initialPrice * 100) / 100;
 
   const [name, setName] = useState(item?.name ?? '');
   const [quantity, setQuantity] = useState(initialQty.toString());
   const [unit, setUnit] = useState(item?.unit ?? 'шт');
   const [pricePerUnit, setPricePerUnit] = useState(initialPrice ? initialPrice.toString() : '');
-  const [totalPriceRaw, setTotalPriceRaw] = useState(initialTotal ? initialTotal.toString() : '');
-  const [totalManuallyEdited, setTotalManuallyEdited] = useState(
-    item != null && Math.abs(initialTotal - initialAuto) > 0.01,
+  const [originalAmountRaw, setOriginalAmountRaw] = useState(initialOriginal ? initialOriginal.toString() : '');
+  const [originalManuallyEdited, setOriginalManuallyEdited] = useState(
+    item != null && Math.abs(initialOriginal - initialAuto) > 0.01,
   );
+  const [discountAmountRaw, setDiscountAmountRaw] = useState(initialDiscount ? initialDiscount.toString() : '');
   const [itemCategoryId, setItemCategoryId] = useState<string>(item?.itemCategoryId ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const qty = parseFloat(quantity) || 0;
   const price = parseFloat(pricePerUnit) || 0;
-  const autoTotal = Math.round(qty * price * 100) / 100;
-  const total = totalPriceRaw === '' ? autoTotal : parseFloat(totalPriceRaw) || 0;
-  const showAutoHint = totalManuallyEdited && Math.abs(total - autoTotal) > 0.01;
+  const autoOriginal = Math.round(qty * price * 100) / 100;
+  const originalAmount = originalAmountRaw === '' ? autoOriginal : parseFloat(originalAmountRaw) || 0;
+  const discountAmount = discountAmountRaw === '' ? 0 : Math.max(0, parseFloat(discountAmountRaw) || 0);
+  const finalPrice = Math.max(0, Math.round((originalAmount - discountAmount) * 100) / 100);
+  const showAutoHint = originalManuallyEdited && Math.abs(originalAmount - autoOriginal) > 0.01;
+  const discountExceedsOriginal = discountAmount > originalAmount;
 
   const handleQtyChange = (v: string) => {
     setQuantity(v);
-    if (!totalManuallyEdited) {
+    if (!originalManuallyEdited) {
       const q = parseFloat(v) || 0;
       const p = parseFloat(pricePerUnit) || 0;
-      setTotalPriceRaw((Math.round(q * p * 100) / 100).toString());
+      setOriginalAmountRaw((Math.round(q * p * 100) / 100).toString());
     }
   };
 
   const handlePriceChange = (v: string) => {
     setPricePerUnit(v);
-    if (!totalManuallyEdited) {
+    if (!originalManuallyEdited) {
       const q = parseFloat(quantity) || 0;
       const p = parseFloat(v) || 0;
-      setTotalPriceRaw((Math.round(q * p * 100) / 100).toString());
+      setOriginalAmountRaw((Math.round(q * p * 100) / 100).toString());
     }
   };
 
-  const handleTotalChange = (v: string) => {
-    setTotalPriceRaw(v);
-    setTotalManuallyEdited(true);
+  const handleOriginalChange = (v: string) => {
+    setOriginalAmountRaw(v);
+    setOriginalManuallyEdited(true);
   };
 
-  const resetTotalToAuto = () => {
-    setTotalPriceRaw(autoTotal ? autoTotal.toString() : '');
-    setTotalManuallyEdited(false);
+  const resetOriginalToAuto = () => {
+    setOriginalAmountRaw(autoOriginal ? autoOriginal.toString() : '');
+    setOriginalManuallyEdited(false);
   };
 
   const handleSave = () => {
     if (!name.trim()) { setError('Введіть назву товару'); return; }
     if (qty <= 0) { setError('Кількість має бути більше 0'); return; }
     if (price <= 0) { setError('Ціна має бути більше 0'); return; }
-    if (total <= 0) { setError('Сума має бути більше 0'); return; }
+    if (originalAmount <= 0) { setError('Сума має бути більше 0'); return; }
     onSave({
       _key: item?._key ?? crypto.randomUUID(),
       name: name.trim(), quantity: qty, unit: unit || undefined,
-      pricePerUnit: price, totalPrice: total,
+      pricePerUnit: price,
+      originalAmount,
+      discountAmount: discountAmount > 0 ? discountAmount : undefined,
       itemCategoryId: itemCategoryId || null,
     });
   };
@@ -360,25 +377,46 @@ function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel
           </div>
           <div>
             <div className="mb-1 flex items-baseline justify-between">
-              <label className="text-[12px] text-gray-500">Сума товару ₴</label>
+              <label className="text-[12px] text-gray-500">Сума без знижки ₴</label>
               {showAutoHint && (
                 <button
                   type="button"
-                  onClick={resetTotalToAuto}
+                  onClick={resetOriginalToAuto}
                   className="text-[11px] text-[#1a1a1a] underline hover:opacity-70"
                 >
-                  Перерахувати ({autoTotal} ₴)
+                  Перерахувати ({autoOriginal} ₴)
                 </button>
               )}
             </div>
-            <input type="number" min="0" step="0.01" value={totalPriceRaw} onChange={(e) => handleTotalChange(e.target.value)}
+            <input type="number" min="0" step="0.01" value={originalAmountRaw} onChange={(e) => handleOriginalChange(e.target.value)}
               className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#9ca3af] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]" />
-            {!totalManuallyEdited && qty > 0 && price > 0 && (
+            {!originalManuallyEdited && qty > 0 && price > 0 && (
               <p className="mt-1 text-[11px] text-[#9ca3af]">
-                Автоматично: {autoTotal} ₴ — змініть якщо потрібно
+                Автоматично: {autoOriginal} ₴ — змініть якщо потрібно
               </p>
             )}
           </div>
+          <div>
+            <label className="mb-1 block text-[12px] text-gray-500">Знижка ₴ (необов'язково)</label>
+            <input
+              type="number" min="0" step="0.01"
+              value={discountAmountRaw}
+              onChange={(e) => setDiscountAmountRaw(e.target.value)}
+              placeholder="0"
+              className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] text-[#1a1a1a] placeholder:text-[#9ca3af] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
+            />
+            {discountExceedsOriginal && (
+              <p className="mt-1 text-[11px] text-[#854F0B]">
+                Знижка перевищує суму товару — фінальна сума буде 0
+              </p>
+            )}
+          </div>
+          {(discountAmount > 0 || originalAmount > 0) && (
+            <div className="flex items-center justify-between rounded-lg px-3 py-[10px]" style={{ backgroundColor: '#F7F7F7' }}>
+              <span className="text-[12px] text-gray-500">Фінальна сума</span>
+              <span className="text-[14px] font-medium text-[#1a1a1a]">{finalPrice} ₴</span>
+            </div>
+          )}
           <div>
             <label className="mb-1 block text-[12px] text-gray-500">Категорія</label>
             <SearchableEntitySelect
@@ -426,7 +464,8 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
       quantity: it.quantity,
       unit: it.unit ?? undefined,
       pricePerUnit: it.pricePerUnit,
-      totalPrice: it.totalPrice,
+      originalAmount: it.originalAmount,
+      discountAmount: it.discountAmount,
       itemCategoryId: it.itemCategoryId,
     })),
   );
@@ -434,7 +473,10 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const computedTotal = items.reduce((s, it) => s + it.totalPrice, 0);
+  const computedTotal = items.reduce(
+    (s, it) => s + Math.max(0, it.originalAmount - (it.discountAmount ?? 0)),
+    0,
+  );
   const totalMismatch = Math.abs(computedTotal - receipt.totalAmount) > 0.01;
 
   const handleSaveItem = (saved: EditableItem) => {
@@ -527,16 +569,27 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
 
           <p className="mb-2 text-[12px] uppercase tracking-wide text-[#9ca3af]">Товари</p>
           <div className="overflow-hidden rounded-lg border border-[#e5e7eb]">
-            {items.map((item) => (
-              <div key={item._key} className="flex items-center gap-3 border-b border-[#e5e7eb] p-3 last:border-b-0">
-                <span className="flex-1 text-[13px] text-[#1a1a1a]">{item.name}</span>
-                <ItemCategoryBadge name={item.itemCategoryId ? itemCategories.find((c) => c.id === item.itemCategoryId)?.name : null} />
-                <span className="text-[13px] text-[#6b7280]">{item.quantity}{item.unit ? ` ${item.unit}` : ''}</span>
-                <span className="text-[13px] text-[#6b7280]">{item.totalPrice} ₴</span>
-                <button type="button" onClick={() => setSubModalItem(item)} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#F7F7F7] hover:text-[#1a1a1a]"><Pencil size={13} /></button>
-                <button type="button" onClick={() => setItems((prev) => prev.filter((i) => i._key !== item._key))} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#FCEBEB] hover:text-[#A32D2D]"><Trash2 size={13} /></button>
-              </div>
-            ))}
+            {items.map((item) => {
+              const discount = item.discountAmount ?? 0;
+              const finalPrice = Math.max(0, Math.round((item.originalAmount - discount) * 100) / 100);
+              return (
+                <div key={item._key} className="flex items-center gap-3 border-b border-[#e5e7eb] p-3 last:border-b-0">
+                  <span className="flex-1 text-[13px] text-[#1a1a1a]">{item.name}</span>
+                  <ItemCategoryBadge name={item.itemCategoryId ? itemCategories.find((c) => c.id === item.itemCategoryId)?.name : null} />
+                  <span className="text-[13px] text-[#6b7280]">{item.quantity}{item.unit ? ` ${item.unit}` : ''}</span>
+                  {discount > 0 ? (
+                    <span className="flex flex-col items-end leading-tight">
+                      <span className="text-[11px] text-[#9ca3af] line-through">{item.originalAmount} ₴</span>
+                      <span className="text-[12px] font-medium">{finalPrice} ₴</span>
+                    </span>
+                  ) : (
+                    <span className="text-[13px] text-[#6b7280]">{finalPrice} ₴</span>
+                  )}
+                  <button type="button" onClick={() => setSubModalItem(item)} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#F7F7F7] hover:text-[#1a1a1a]"><Pencil size={13} /></button>
+                  <button type="button" onClick={() => setItems((prev) => prev.filter((i) => i._key !== item._key))} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#FCEBEB] hover:text-[#A32D2D]"><Trash2 size={13} /></button>
+                </div>
+              );
+            })}
             {items.length === 0 && <div className="px-4 py-4 text-center text-[13px] text-[#9ca3af]">Немає товарів</div>}
           </div>
           <button type="button" onClick={() => setSubModalItem('new')} className="mt-2 text-[13px] text-[#1a1a1a] underline hover:opacity-70">

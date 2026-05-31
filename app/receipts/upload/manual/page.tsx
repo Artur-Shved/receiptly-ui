@@ -78,60 +78,65 @@ interface ItemSubModalProps {
 function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel }: ItemSubModalProps) {
   const initialQty = item?.quantity ?? 1;
   const initialPrice = item?.pricePerUnit ?? 0;
-  const initialTotal = item?.totalPrice ?? round2(initialQty * initialPrice);
+  const initialOriginal = item?.originalAmount ?? round2(initialQty * initialPrice);
+  const initialDiscount = item?.discountAmount ?? 0;
   const initialAuto = round2(initialQty * initialPrice);
 
   const [name, setName] = useState(item?.name ?? '');
   const [quantity, setQuantity] = useState(initialQty.toString());
   const [unit, setUnit] = useState(item?.unit ?? 'шт');
   const [pricePerUnit, setPricePerUnit] = useState(initialPrice ? initialPrice.toString() : '');
-  const [totalPriceRaw, setTotalPriceRaw] = useState(initialTotal ? initialTotal.toString() : '');
-  const [totalManuallyEdited, setTotalManuallyEdited] = useState(
-    item != null && Math.abs(initialTotal - initialAuto) > 0.01,
+  const [originalAmountRaw, setOriginalAmountRaw] = useState(initialOriginal ? initialOriginal.toString() : '');
+  const [originalManuallyEdited, setOriginalManuallyEdited] = useState(
+    item != null && Math.abs(initialOriginal - initialAuto) > 0.01,
   );
+  const [discountAmountRaw, setDiscountAmountRaw] = useState(initialDiscount ? initialDiscount.toString() : '');
   const [itemCategoryId, setItemCategoryId] = useState<string>(item?.itemCategoryId ?? '');
 
   const [nameError, setNameError] = useState<string | null>(null);
   const [qtyError, setQtyError] = useState<string | null>(null);
   const [priceError, setPriceError] = useState<string | null>(null);
-  const [totalError, setTotalError] = useState<string | null>(null);
+  const [originalError, setOriginalError] = useState<string | null>(null);
 
   const qty = parseFloat(quantity) || 0;
   const price = parseFloat(pricePerUnit) || 0;
-  const autoTotal = round2(qty * price);
-  const total = totalPriceRaw === '' ? autoTotal : parseFloat(totalPriceRaw) || 0;
-  const showAutoHint = totalManuallyEdited && Math.abs(total - autoTotal) > 0.01;
+  const autoOriginal = round2(qty * price);
+  const originalAmount = originalAmountRaw === '' ? autoOriginal : parseFloat(originalAmountRaw) || 0;
+  const discountAmount = discountAmountRaw === '' ? 0 : Math.max(0, parseFloat(discountAmountRaw) || 0);
+  const finalPrice = Math.max(0, round2(originalAmount - discountAmount));
+  const showAutoHint = originalManuallyEdited && Math.abs(originalAmount - autoOriginal) > 0.01;
+  const discountExceedsOriginal = discountAmount > originalAmount;
 
   const handleQtyChange = (v: string) => {
     setQuantity(v);
     setQtyError(null);
-    if (!totalManuallyEdited) {
+    if (!originalManuallyEdited) {
       const q = parseFloat(v) || 0;
       const p = parseFloat(pricePerUnit) || 0;
-      setTotalPriceRaw(round2(q * p).toString());
+      setOriginalAmountRaw(round2(q * p).toString());
     }
   };
 
   const handlePriceChange = (v: string) => {
     setPricePerUnit(v);
     setPriceError(null);
-    if (!totalManuallyEdited) {
+    if (!originalManuallyEdited) {
       const q = parseFloat(quantity) || 0;
       const p = parseFloat(v) || 0;
-      setTotalPriceRaw(round2(q * p).toString());
+      setOriginalAmountRaw(round2(q * p).toString());
     }
   };
 
-  const handleTotalChange = (v: string) => {
-    setTotalPriceRaw(v);
-    setTotalManuallyEdited(true);
-    setTotalError(null);
+  const handleOriginalChange = (v: string) => {
+    setOriginalAmountRaw(v);
+    setOriginalManuallyEdited(true);
+    setOriginalError(null);
   };
 
-  const resetTotalToAuto = () => {
-    setTotalPriceRaw(autoTotal ? autoTotal.toString() : '');
-    setTotalManuallyEdited(false);
-    setTotalError(null);
+  const resetOriginalToAuto = () => {
+    setOriginalAmountRaw(autoOriginal ? autoOriginal.toString() : '');
+    setOriginalManuallyEdited(false);
+    setOriginalError(null);
   };
 
   const validate = (): boolean => {
@@ -139,7 +144,7 @@ function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel
     if (!name.trim()) { setNameError('Введіть назву товару'); ok = false; }
     if (qty <= 0) { setQtyError('Значення має бути більше 0'); ok = false; }
     if (price <= 0) { setPriceError('Значення має бути більше 0'); ok = false; }
-    if (total <= 0) { setTotalError('Значення має бути більше 0'); ok = false; }
+    if (originalAmount <= 0) { setOriginalError('Значення має бути більше 0'); ok = false; }
     return ok;
   };
 
@@ -147,7 +152,7 @@ function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel
     setNameError(null);
     setQtyError(null);
     setPriceError(null);
-    setTotalError(null);
+    setOriginalError(null);
     if (!validate()) return;
     onSave({
       _key: item?._key ?? crypto.randomUUID(),
@@ -155,7 +160,8 @@ function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel
       quantity: qty,
       unit: unit || undefined,
       pricePerUnit: price,
-      totalPrice: total,
+      originalAmount,
+      discountAmount: discountAmount > 0 ? discountAmount : undefined,
       itemCategoryId: itemCategoryId || null,
     });
   };
@@ -236,14 +242,14 @@ function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel
 
           <div>
             <div className="mb-1 flex items-baseline justify-between">
-              <label className="text-[12px] text-gray-500">Сума товару ₴</label>
+              <label className="text-[12px] text-gray-500">Сума без знижки ₴</label>
               {showAutoHint && (
                 <button
                   type="button"
-                  onClick={resetTotalToAuto}
+                  onClick={resetOriginalToAuto}
                   className="text-[11px] text-[#1a1a1a] underline hover:opacity-70"
                 >
-                  Перерахувати ({autoTotal} ₴)
+                  Перерахувати ({autoOriginal} ₴)
                 </button>
               )}
             </div>
@@ -251,17 +257,38 @@ function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel
               type="number"
               min="0"
               step="0.01"
-              value={totalPriceRaw}
-              onChange={(e) => handleTotalChange(e.target.value)}
+              value={originalAmountRaw}
+              onChange={(e) => handleOriginalChange(e.target.value)}
               className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
             />
-            {totalError && <p className="mt-1 text-[12px] text-[#A32D2D]">{totalError}</p>}
-            {!totalManuallyEdited && !totalError && qty > 0 && price > 0 && (
+            {originalError && <p className="mt-1 text-[12px] text-[#A32D2D]">{originalError}</p>}
+            {!originalManuallyEdited && !originalError && qty > 0 && price > 0 && (
               <p className="mt-1 text-[11px] text-[#9ca3af]">
-                Автоматично: {autoTotal} ₴ — змініть якщо потрібно
+                Автоматично: {autoOriginal} ₴ — змініть якщо потрібно
               </p>
             )}
           </div>
+          <div>
+            <label className="mb-1 block text-[12px] text-gray-500">Знижка ₴ (необов'язково)</label>
+            <input
+              type="number" min="0" step="0.01"
+              value={discountAmountRaw}
+              onChange={(e) => setDiscountAmountRaw(e.target.value)}
+              placeholder="0"
+              className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
+            />
+            {discountExceedsOriginal && (
+              <p className="mt-1 text-[11px] text-[#854F0B]">
+                Знижка перевищує суму — фінальна сума буде 0
+              </p>
+            )}
+          </div>
+          {(discountAmount > 0 || originalAmount > 0) && (
+            <div className="flex items-center justify-between rounded-lg px-3 py-[10px]" style={{ backgroundColor: '#F7F7F7' }}>
+              <span className="text-[12px] text-gray-500">Фінальна сума</span>
+              <span className="text-[14px] font-medium text-[#1a1a1a]">{finalPrice} ₴</span>
+            </div>
+          )}
 
           <div>
             <label className="mb-1 block text-[12px] text-gray-500">Категорія товару</label>
@@ -355,7 +382,12 @@ export default function ManualReceiptPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const autoTotal = round2(items.reduce((s, it) => s + Number(it.totalPrice ?? 0), 0));
+  const autoTotal = round2(
+    items.reduce(
+      (s, it) => s + Math.max(0, it.originalAmount - (it.discountAmount ?? 0)),
+      0,
+    ),
+  );
   const parsedManualTotal = manualTotalRaw === '' ? null : parseFloat(manualTotalRaw);
   const hasManualOverride =
     parsedManualTotal !== null && !Number.isNaN(parsedManualTotal);
@@ -586,7 +618,18 @@ export default function ManualReceiptPage() {
                           {item.quantity}{item.unit ? ` ${item.unit}` : ''}
                         </span>
                         <span className="text-right text-[13px] font-medium text-[#1a1a1a]">
-                          {round2(item.totalPrice)} ₴
+                          {(() => {
+                            const d = item.discountAmount ?? 0;
+                            const final = Math.max(0, round2(item.originalAmount - d));
+                            return d > 0 ? (
+                              <span className="flex flex-col items-end leading-tight">
+                                <span className="text-[10px] text-[#9ca3af] line-through">{item.originalAmount}</span>
+                                <span>{final} ₴</span>
+                              </span>
+                            ) : (
+                              <>{final} ₴</>
+                            );
+                          })()}
                         </span>
                         <div className="flex justify-end gap-1">
                           <button

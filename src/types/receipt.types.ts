@@ -6,6 +6,11 @@ export interface ReceiptItem {
   quantity: number;
   unit: string | null;
   pricePerUnit: number;
+  /** Pre-discount line amount. */
+  originalAmount: number;
+  /** 0 when there is no discount on this line. */
+  discountAmount: number;
+  /** Server-computed: max(0, originalAmount - discountAmount). */
   totalPrice: number;
   itemCategory?: { id: string; name: string } | null;
 }
@@ -41,7 +46,10 @@ export interface CreateReceiptItemDto {
   quantity: number;
   unit?: string;
   pricePerUnit: number;
-  totalPrice: number;
+  /** Pre-discount line amount; what the user typed. */
+  originalAmount: number;
+  /** Optional discount on this line; 0 by default. Server computes the final total. */
+  discountAmount?: number;
   itemCategoryId?: string | null;
 }
 
@@ -68,7 +76,10 @@ export interface ParsedItem {
   quantity: number;
   unit: string | null;
   pricePerUnit: number;
+  originalAmount: number;
+  discountAmount: number;
   totalPrice: number;
+  hasDiscount: boolean;
   category: string | null;
   photoIndex?: number;
 }

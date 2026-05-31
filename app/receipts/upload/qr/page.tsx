@@ -156,39 +156,44 @@ interface ItemSubModalProps {
 function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel }: ItemSubModalProps) {
   const initialQty = item?.quantity ?? 1;
   const initialPrice = item?.pricePerUnit ?? 0;
-  const initialTotal = item?.totalPrice ?? Math.round(initialQty * initialPrice * 100) / 100;
+  const initialOriginal = item?.originalAmount ?? Math.round(initialQty * initialPrice * 100) / 100;
+  const initialDiscount = item?.discountAmount ?? 0;
   const initialAuto = Math.round(initialQty * initialPrice * 100) / 100;
 
   const [name, setName] = useState(item?.name ?? '');
   const [quantity, setQuantity] = useState(initialQty.toString());
   const [unit, setUnit] = useState(item?.unit ?? 'шт');
   const [pricePerUnit, setPricePerUnit] = useState(initialPrice ? initialPrice.toString() : '');
-  const [totalPriceRaw, setTotalPriceRaw] = useState(initialTotal ? initialTotal.toString() : '');
-  const [totalManuallyEdited, setTotalManuallyEdited] = useState(
-    item != null && Math.abs(initialTotal - initialAuto) > 0.01,
+  const [originalAmountRaw, setOriginalAmountRaw] = useState(initialOriginal ? initialOriginal.toString() : '');
+  const [originalManuallyEdited, setOriginalManuallyEdited] = useState(
+    item != null && Math.abs(initialOriginal - initialAuto) > 0.01,
   );
+  const [discountAmountRaw, setDiscountAmountRaw] = useState(initialDiscount ? initialDiscount.toString() : '');
   const [itemCategoryId, setItemCategoryId] = useState<string>(item?.itemCategoryId ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const qty = parseFloat(quantity) || 0;
   const price = parseFloat(pricePerUnit) || 0;
-  const autoTotal = Math.round(qty * price * 100) / 100;
-  const total = totalPriceRaw === '' ? autoTotal : parseFloat(totalPriceRaw) || 0;
+  const autoOriginal = Math.round(qty * price * 100) / 100;
+  const originalAmount = originalAmountRaw === '' ? autoOriginal : parseFloat(originalAmountRaw) || 0;
+  const discountAmount = discountAmountRaw === '' ? 0 : Math.max(0, parseFloat(discountAmountRaw) || 0);
+  const finalPrice = Math.max(0, Math.round((originalAmount - discountAmount) * 100) / 100);
+  const discountExceedsOriginal = discountAmount > originalAmount;
 
   const handleQty = (v: string) => {
     setQuantity(v);
-    if (!totalManuallyEdited) {
+    if (!originalManuallyEdited) {
       const q = parseFloat(v) || 0;
       const p = parseFloat(pricePerUnit) || 0;
-      setTotalPriceRaw((Math.round(q * p * 100) / 100).toString());
+      setOriginalAmountRaw((Math.round(q * p * 100) / 100).toString());
     }
   };
   const handlePrice = (v: string) => {
     setPricePerUnit(v);
-    if (!totalManuallyEdited) {
+    if (!originalManuallyEdited) {
       const q = parseFloat(quantity) || 0;
       const p = parseFloat(v) || 0;
-      setTotalPriceRaw((Math.round(q * p * 100) / 100).toString());
+      setOriginalAmountRaw((Math.round(q * p * 100) / 100).toString());
     }
   };
 
@@ -196,12 +201,14 @@ function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel
     if (!name.trim()) { setError('Введіть назву товару'); return; }
     if (qty <= 0) { setError('Кількість має бути більше 0'); return; }
     if (price <= 0) { setError('Ціна має бути більше 0'); return; }
-    if (total <= 0) { setError('Сума має бути більше 0'); return; }
+    if (originalAmount <= 0) { setError('Сума має бути більше 0'); return; }
     onSave({
       _key: item?._key ?? crypto.randomUUID(),
       name: name.trim(),
       quantity: qty, unit: unit || undefined,
-      pricePerUnit: price, totalPrice: total,
+      pricePerUnit: price,
+      originalAmount,
+      discountAmount: discountAmount > 0 ? discountAmount : undefined,
       itemCategoryId: itemCategoryId || null,
     });
   };
@@ -244,9 +251,33 @@ function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-[12px] text-gray-500">Сума ₴</label>
-            <input type="number" min="0" step="0.01" value={totalPriceRaw} onChange={(e) => { setTotalPriceRaw(e.target.value); setTotalManuallyEdited(true); }} className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]" />
+            <label className="mb-1 block text-[12px] text-gray-500">Сума без знижки ₴</label>
+            <input
+              type="number" min="0" step="0.01"
+              value={originalAmountRaw}
+              onChange={(e) => { setOriginalAmountRaw(e.target.value); setOriginalManuallyEdited(true); }}
+              className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
+            />
           </div>
+          <div>
+            <label className="mb-1 block text-[12px] text-gray-500">Знижка ₴ (необов'язково)</label>
+            <input
+              type="number" min="0" step="0.01"
+              value={discountAmountRaw}
+              onChange={(e) => setDiscountAmountRaw(e.target.value)}
+              placeholder="0"
+              className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
+            />
+            {discountExceedsOriginal && (
+              <p className="mt-1 text-[11px] text-[#854F0B]">Знижка перевищує суму — фінальна сума буде 0</p>
+            )}
+          </div>
+          {(discountAmount > 0 || originalAmount > 0) && (
+            <div className="flex items-center justify-between rounded-lg px-3 py-[10px]" style={{ backgroundColor: '#F7F7F7' }}>
+              <span className="text-[12px] text-gray-500">Фінальна сума</span>
+              <span className="text-[14px] font-medium text-[#1a1a1a]">{finalPrice} ₴</span>
+            </div>
+          )}
           <div>
             <label className="mb-1 block text-[12px] text-gray-500">Категорія товару</label>
             <SearchableEntitySelect
@@ -394,7 +425,8 @@ export default function QrUploadPage() {
           quantity: pi.quantity,
           unit: pi.unit ?? undefined,
           pricePerUnit: pi.pricePerUnit,
-          totalPrice: pi.totalPrice,
+          originalAmount: pi.originalAmount,
+          discountAmount: pi.discountAmount,
           itemCategoryId: null,
         })),
       );
@@ -760,7 +792,18 @@ export default function QrUploadPage() {
                       {item.quantity}{item.unit ? ` ${item.unit}` : ''}
                     </span>
                     <span className="text-right text-[13px] font-medium">
-                      {Math.round(item.totalPrice * 100) / 100} ₴
+                      {(() => {
+                        const d = item.discountAmount ?? 0;
+                        const final = Math.max(0, Math.round((item.originalAmount - d) * 100) / 100);
+                        return d > 0 ? (
+                          <span className="flex flex-col items-end leading-tight">
+                            <span className="text-[10px] text-[#9ca3af] line-through">{item.originalAmount}</span>
+                            <span>{final} ₴</span>
+                          </span>
+                        ) : (
+                          <>{final} ₴</>
+                        );
+                      })()}
                     </span>
                     <div className="flex justify-end gap-1">
                       <button type="button" onClick={() => setSubModalItem(item)} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#F7F7F7] hover:text-[#1a1a1a]"><Pencil size={13} /></button>
@@ -788,7 +831,10 @@ export default function QrUploadPage() {
               </div>
 
               {(() => {
-                const computedTotal = items.reduce((s, it) => s + it.totalPrice, 0);
+                const computedTotal = items.reduce(
+                  (s, it) => s + Math.max(0, it.originalAmount - (it.discountAmount ?? 0)),
+                  0,
+                );
                 const mismatch =
                   parseResult.totalAmount != null &&
                   Math.abs(computedTotal - parseResult.totalAmount) > 0.01;

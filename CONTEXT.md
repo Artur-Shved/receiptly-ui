@@ -5,6 +5,20 @@
 
 ---
 
+## Оновлено: 2026-05-31 — Item discounts
+
+### Зміни
+- `ReceiptItem` + `CreateReceiptItemDto` + `ParsedItem` отримали `originalAmount` + `discountAmount` (а `ParsedItem` ще й `hasDiscount`). `totalPrice` залишається у `ReceiptItem` / `ParsedItem` (computed by BE), але **прибрано з input** `CreateReceiptItemDto` — клієнт ніколи його не надсилає.
+- `ItemSubModal` (всі 4 копії: `/receipts` EditModal, `/receipts/upload`, `/receipts/upload/manual`, `/receipts/upload/qr`):
+  - "Сума товару" перейменовано на "Сума без знижки" (зберігає auto-fill з qty × price)
+  - Додано окреме поле "Знижка ₴ (необов'язково)"
+  - Внизу — read-only картка "Фінальна сума" з live-перерахунком
+  - Warn якщо `discount > original` — "фінальна сума буде 0"
+- Items table (DetailsModal, ItemsEditor у LLM, manual table, QR preview, /receipts EditModal) — якщо `discountAmount > 0`: оригінал перекреслений, фінальна сума жирним; інакше тільки фінальна сума
+- Обчислення `computedTotal` для warning банера "сума товарів ≠ оригінал чеку" базується на `max(0, original − discount)`
+
+---
+
 ## Оновлено: 2026-05-30 — QR (ДПС) Flow E
 
 ### Нова сторінка `/receipts/upload/qr`

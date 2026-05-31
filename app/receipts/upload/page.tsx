@@ -127,66 +127,72 @@ interface ItemSubModalProps {
 function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel }: ItemSubModalProps) {
   const initialQty = item?.quantity ?? 1;
   const initialPrice = item?.pricePerUnit ?? 0;
-  const initialTotal = item?.totalPrice ?? Math.round(initialQty * initialPrice * 100) / 100;
+  const initialOriginal = item?.originalAmount ?? Math.round(initialQty * initialPrice * 100) / 100;
+  const initialDiscount = item?.discountAmount ?? 0;
   const initialAuto = Math.round(initialQty * initialPrice * 100) / 100;
 
   const [name, setName] = useState(item?.name ?? '');
   const [quantity, setQuantity] = useState(initialQty.toString());
   const [unit, setUnit] = useState(item?.unit ?? 'шт');
   const [pricePerUnit, setPricePerUnit] = useState(initialPrice ? initialPrice.toString() : '');
-  const [totalPriceRaw, setTotalPriceRaw] = useState(initialTotal ? initialTotal.toString() : '');
-  const [totalManuallyEdited, setTotalManuallyEdited] = useState(
-    item != null && Math.abs(initialTotal - initialAuto) > 0.01,
+  const [originalAmountRaw, setOriginalAmountRaw] = useState(initialOriginal ? initialOriginal.toString() : '');
+  const [originalManuallyEdited, setOriginalManuallyEdited] = useState(
+    item != null && Math.abs(initialOriginal - initialAuto) > 0.01,
   );
+  const [discountAmountRaw, setDiscountAmountRaw] = useState(initialDiscount ? initialDiscount.toString() : '');
   const [itemCategoryId, setItemCategoryId] = useState<string>(item?.itemCategoryId ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const qty = parseFloat(quantity) || 0;
   const price = parseFloat(pricePerUnit) || 0;
-  const autoTotal = Math.round(qty * price * 100) / 100;
-  const total = totalPriceRaw === '' ? autoTotal : parseFloat(totalPriceRaw) || 0;
-  const showAutoHint = totalManuallyEdited && Math.abs(total - autoTotal) > 0.01;
+  const autoOriginal = Math.round(qty * price * 100) / 100;
+  const originalAmount = originalAmountRaw === '' ? autoOriginal : parseFloat(originalAmountRaw) || 0;
+  const discountAmount = discountAmountRaw === '' ? 0 : Math.max(0, parseFloat(discountAmountRaw) || 0);
+  const finalPrice = Math.max(0, Math.round((originalAmount - discountAmount) * 100) / 100);
+  const showAutoHint = originalManuallyEdited && Math.abs(originalAmount - autoOriginal) > 0.01;
+  const discountExceedsOriginal = discountAmount > originalAmount;
 
   const handleQtyChange = (v: string) => {
     setQuantity(v);
-    if (!totalManuallyEdited) {
+    if (!originalManuallyEdited) {
       const q = parseFloat(v) || 0;
       const p = parseFloat(pricePerUnit) || 0;
-      setTotalPriceRaw((Math.round(q * p * 100) / 100).toString());
+      setOriginalAmountRaw((Math.round(q * p * 100) / 100).toString());
     }
   };
 
   const handlePriceChange = (v: string) => {
     setPricePerUnit(v);
-    if (!totalManuallyEdited) {
+    if (!originalManuallyEdited) {
       const q = parseFloat(quantity) || 0;
       const p = parseFloat(v) || 0;
-      setTotalPriceRaw((Math.round(q * p * 100) / 100).toString());
+      setOriginalAmountRaw((Math.round(q * p * 100) / 100).toString());
     }
   };
 
-  const handleTotalChange = (v: string) => {
-    setTotalPriceRaw(v);
-    setTotalManuallyEdited(true);
+  const handleOriginalChange = (v: string) => {
+    setOriginalAmountRaw(v);
+    setOriginalManuallyEdited(true);
   };
 
-  const resetTotalToAuto = () => {
-    setTotalPriceRaw(autoTotal ? autoTotal.toString() : '');
-    setTotalManuallyEdited(false);
+  const resetOriginalToAuto = () => {
+    setOriginalAmountRaw(autoOriginal ? autoOriginal.toString() : '');
+    setOriginalManuallyEdited(false);
   };
 
   const handleSave = () => {
     if (!name.trim()) { setError('Введіть назву товару'); return; }
     if (qty <= 0) { setError('Кількість має бути більше 0'); return; }
     if (price <= 0) { setError('Ціна має бути більше 0'); return; }
-    if (total <= 0) { setError('Сума має бути більше 0'); return; }
+    if (originalAmount <= 0) { setError('Сума має бути більше 0'); return; }
     onSave({
       _key: item?._key ?? crypto.randomUUID(),
       name: name.trim(),
       quantity: qty,
       unit: unit || undefined,
       pricePerUnit: price,
-      totalPrice: total,
+      originalAmount,
+      discountAmount: discountAmount > 0 ? discountAmount : undefined,
       itemCategoryId: itemCategoryId || null,
     });
   };
@@ -267,14 +273,14 @@ function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel
           </div>
           <div>
             <div className="mb-1 flex items-baseline justify-between">
-              <label className="text-[12px] text-gray-500">Сума товару ₴</label>
+              <label className="text-[12px] text-gray-500">Сума без знижки ₴</label>
               {showAutoHint && (
                 <button
                   type="button"
-                  onClick={resetTotalToAuto}
+                  onClick={resetOriginalToAuto}
                   className="text-[11px] text-[#1a1a1a] underline hover:opacity-70"
                 >
-                  Перерахувати ({autoTotal} ₴)
+                  Перерахувати ({autoOriginal} ₴)
                 </button>
               )}
             </div>
@@ -282,16 +288,37 @@ function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel
               type="number"
               min="0"
               step="0.01"
-              value={totalPriceRaw}
-              onChange={(e) => handleTotalChange(e.target.value)}
+              value={originalAmountRaw}
+              onChange={(e) => handleOriginalChange(e.target.value)}
               className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
             />
-            {!totalManuallyEdited && qty > 0 && price > 0 && (
+            {!originalManuallyEdited && qty > 0 && price > 0 && (
               <p className="mt-1 text-[11px] text-[#9ca3af]">
-                Автоматично: {autoTotal} ₴ — змініть якщо потрібно
+                Автоматично: {autoOriginal} ₴ — змініть якщо потрібно
               </p>
             )}
           </div>
+          <div>
+            <label className="mb-1 block text-[12px] text-gray-500">Знижка ₴ (необов'язково)</label>
+            <input
+              type="number" min="0" step="0.01"
+              value={discountAmountRaw}
+              onChange={(e) => setDiscountAmountRaw(e.target.value)}
+              placeholder="0"
+              className="h-[38px] w-full rounded-lg border border-[#e5e7eb] px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
+            />
+            {discountExceedsOriginal && (
+              <p className="mt-1 text-[11px] text-[#854F0B]">
+                Знижка перевищує суму — фінальна сума буде 0
+              </p>
+            )}
+          </div>
+          {(discountAmount > 0 || originalAmount > 0) && (
+            <div className="flex items-center justify-between rounded-lg px-3 py-[10px]" style={{ backgroundColor: '#F7F7F7' }}>
+              <span className="text-[12px] text-gray-500">Фінальна сума</span>
+              <span className="text-[14px] font-medium text-[#1a1a1a]">{finalPrice} ₴</span>
+            </div>
+          )}
           <div>
             <label className="mb-1 block text-[12px] text-gray-500">Категорія</label>
             <SearchableEntitySelect
@@ -393,7 +420,20 @@ function ItemsEditor({ items, itemCategories, onCreateCategory, currency, onChan
                 {item.quantity}{item.unit ? ` ${item.unit}` : ''}
               </span>
               <span className="text-[13px] text-[#6b7280]">{item.pricePerUnit} {currency}</span>
-              <span className="text-right text-[13px] text-[#1a1a1a]">{item.totalPrice} {currency}</span>
+              <span className="text-right text-[13px] text-[#1a1a1a]">
+                {(() => {
+                  const d = item.discountAmount ?? 0;
+                  const final = Math.max(0, Math.round((item.originalAmount - d) * 100) / 100);
+                  return d > 0 ? (
+                    <span className="flex flex-col items-end leading-tight">
+                      <span className="text-[10px] text-[#9ca3af] line-through">{item.originalAmount}</span>
+                      <span className="font-medium">{final} {currency}</span>
+                    </span>
+                  ) : (
+                    <>{final} {currency}</>
+                  );
+                })()}
+              </span>
               <div className="flex justify-end gap-1">
                 <button
                   type="button"
@@ -518,7 +558,10 @@ export default function ReceiptUploadPage() {
   const [createdReceiptId, setCreatedReceiptId] = useState<string | null>(null);
 
   const parsedCurrency = parseResult?.currency ?? 'UAH';
-  const computedTotal = items.reduce((s, it) => s + it.totalPrice, 0);
+  const computedTotal = items.reduce(
+    (s, it) => s + Math.max(0, it.originalAmount - (it.discountAmount ?? 0)),
+    0,
+  );
   const totalMismatch =
     parseResult?.totalAmount != null &&
     Math.abs(computedTotal - parseResult.totalAmount) > 0.01;
@@ -655,7 +698,8 @@ export default function ReceiptUploadPage() {
               quantity: pi.quantity,
               unit: pi.unit ?? undefined,
               pricePerUnit: pi.pricePerUnit,
-              totalPrice: pi.totalPrice,
+              originalAmount: pi.originalAmount,
+              discountAmount: pi.discountAmount,
               itemCategoryId: null,
               photoIndex: pi.photoIndex,
             })),
