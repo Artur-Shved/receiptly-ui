@@ -1,0 +1,14 @@
+<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Receiptly</title>
+  <rect width="80" height="80" rx="18" fill="#1a1a1a"/>
+  <rect x="15" y="10" width="36" height="50" rx="4.5" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <rect x="15" y="10" width="36" height="13" rx="4.5" fill="#ffffff" opacity="0.1"/>
+  <line x1="22" y1="31" x2="44" y2="31" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" opacity="0.45"/>
+  <line x1="22" y1="39" x2="40" y2="39" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" opacity="0.45"/>
+  <line x1="22" y1="47" x2="43" y2="47" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" opacity="0.45"/>
+  <line x1="22" y1="54" x2="37" y2="54" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" opacity="0.45"/>
+  <path d="M15 61 Q18.5 57 22 61 Q25.5 65 29 61 Q32.5 57 36 61 Q39.5 65 43 61 Q46.5 57 50 61" fill="none" stroke="#ffffff" stroke-width="1.5" opacity="0.3"/>
+  <circle cx="57" cy="56" r="16" fill="#EAF3DE"/>
+  <circle cx="57" cy="56" r="13" fill="none" stroke="#3B6D11" stroke-width="1.5" opacity="0.35"/>
+  <text x="57" y="61" text-anchor="middle" font-size="18" font-weight="500" fill="#27500A" font-family="system-ui, -apple-system, sans-serif">₴</text>
+</svg>

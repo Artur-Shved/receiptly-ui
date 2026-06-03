@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Receipt, Camera, User, LogOut, Settings } from 'lucide-react';
+import { Camera, User, LogOut, Settings } from 'lucide-react';
 import { Button } from '@/src/components/ui/Button';
+import { Wordmark } from '@/src/components/ui/Logo';
 import { AddReceiptChoiceModal } from '@/src/components/features/receipts/AddReceiptChoiceModal';
 
 interface TopNavProps {
@@ -25,10 +26,9 @@ export function TopNav({ onLogoutClick }: TopNavProps) {
   return (
     <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[#e5e7eb] bg-white px-6">
       {choiceOpen && <AddReceiptChoiceModal onClose={() => setChoiceOpen(false)} />}
-      <div className="flex items-center gap-2">
-        <Receipt size={20} color="#1a1a1a" />
-        <span className="text-[16px] font-medium">Receiptly</span>
-      </div>
+      <Link href="/home" className="flex items-center" aria-label="Receiptly — на головну">
+        <Wordmark height={28} />
+      </Link>
 
       <nav className="flex gap-6">
         <Link href="/home" className={navClass(pathname === '/home')}>

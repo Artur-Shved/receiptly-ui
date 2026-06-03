@@ -124,23 +124,35 @@ export default function HomePage() {
     authApi.me().then((u) => setUserName(u.name)).catch(() => {});
   }, []);
 
+  const [receiptsTotal, setReceiptsTotal] = useState(0);
+
   useEffect(() => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = today.getMonth();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const dateFrom = `${y}-${pad(m + 1)}-01`;
+    const dateTo = `${y}-${pad(m + 1)}-${pad(new Date(y, m + 1, 0).getDate())}`;
+
     setReceiptsLoading(true);
     receiptsApi
-      .getAll(1, 20)
-      .then((res) => { setReceipts(res.data); setReceiptsLoading(false); })
+      .getAll(1, 20, { dateFrom, dateTo })
+      .then((res) => {
+        setReceipts(res.data);
+        setReceiptsTotal(res.total);
+        setReceiptsLoading(false);
+      })
       .catch(() => { setReceiptsError(true); setReceiptsLoading(false); });
   }, []);
 
-  const currentYearMonth = (now ?? new Date(0)).toISOString().slice(0, 7);
-
-  const monthlyStats = useMemo(() => {
-    const monthReceipts = receipts.filter((r) => r.receiptDate.startsWith(currentYearMonth));
-    return {
-      total: monthReceipts.reduce((sum, r) => sum + Number(r.totalAmount ?? 0), 0),
-      count: monthReceipts.length,
-    };
-  }, [receipts, currentYearMonth]);
+  // Receipts are already scoped to the current month server-side.
+  const monthlyStats = useMemo(
+    () => ({
+      total: receipts.reduce((sum, r) => sum + Number(r.totalAmount ?? 0), 0),
+      count: receiptsTotal,
+    }),
+    [receipts, receiptsTotal],
+  );
 
   const recentReceipts = receipts.slice(0, 5);
 
@@ -233,7 +245,7 @@ export default function HomePage() {
               return (
                 <Link
                   key={receipt.id}
-                  href="/receipts"
+                  href={`/receipts?receiptId=${receipt.id}`}
                   className="grid cursor-pointer items-center border-t border-[#e5e7eb] px-4 py-3 hover:bg-[#FAFAFA]"
                   style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr' }}
                 >

@@ -18,8 +18,16 @@ export const receiptsApi = {
     form.append('image', file);
     return apiClient.post<ParsedReceiptDto>('/receipts/parse-from-qr-image', form);
   },
-  getAll: (page = 1, limit = 20): Promise<ReceiptsListResponse> =>
-    apiClient.get<ReceiptsListResponse>(`/receipts?page=${page}&limit=${limit}`),
+  getAll: (
+    page = 1,
+    limit = 20,
+    params?: { dateFrom?: string; dateTo?: string },
+  ): Promise<ReceiptsListResponse> => {
+    const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (params?.dateFrom) qs.set('dateFrom', params.dateFrom);
+    if (params?.dateTo) qs.set('dateTo', params.dateTo);
+    return apiClient.get<ReceiptsListResponse>(`/receipts?${qs.toString()}`);
+  },
   getOne: (id: string): Promise<Receipt> =>
     apiClient.get<Receipt>(`/receipts/${id}`),
   create: (dto: CreateReceiptDto): Promise<Receipt> =>

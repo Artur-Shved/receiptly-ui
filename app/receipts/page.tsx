@@ -18,6 +18,7 @@ import { Button } from '@/src/components/ui/Button';
 import { SearchableStoreSelect } from '@/src/components/features/receipts/SearchableStoreSelect';
 import { SearchableEntitySelect } from '@/src/components/features/receipts/SearchableEntitySelect';
 import { AddReceiptChoiceModal } from '@/src/components/features/receipts/AddReceiptChoiceModal';
+import { receiptsApi } from '@/src/api/receipts.api';
 import { useLogout } from '@/src/hooks/useAuth';
 import { useReceipts } from '@/src/hooks/useReceipts';
 import { useStores } from '@/src/hooks/useStores';
@@ -753,6 +754,21 @@ export default function ReceiptsPage() {
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Deep-link: open a receipt's details when arriving with ?receiptId=<id>
+  // (e.g. from the home screen). Fetch the full receipt so items are present,
+  // then strip the param from the URL so refresh/back behaves naturally.
+  useEffect(() => {
+    const receiptId = new URLSearchParams(window.location.search).get('receiptId');
+    if (!receiptId) return;
+    let active = true;
+    receiptsApi
+      .getOne(receiptId)
+      .then((r) => { if (active) setDetailsReceipt(r); })
+      .catch(() => {});
+    window.history.replaceState(null, '', '/receipts');
+    return () => { active = false; };
   }, []);
 
   const availableMonths = useMemo(() => {
