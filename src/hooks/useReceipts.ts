@@ -5,6 +5,8 @@ import { receiptsApi } from '@/src/api/receipts.api';
 import { ApiError } from '@/src/types/api.types';
 import type { Receipt, CreateReceiptDto, UpdateReceiptDto } from '@/src/types/receipt.types';
 
+const PAGE_SIZE = 5;
+
 export function useReceipts() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [total, setTotal] = useState(0);
@@ -17,7 +19,7 @@ export function useReceipts() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await receiptsApi.getAll(pageNum, 20);
+      const res = await receiptsApi.getAll(pageNum, PAGE_SIZE);
       setReceipts((prev) => (append ? [...prev, ...res.data] : res.data));
       setTotal(res.total);
       setHasMore(res.hasMore);

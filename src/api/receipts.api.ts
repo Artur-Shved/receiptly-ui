@@ -20,7 +20,7 @@ export const receiptsApi = {
   },
   getAll: (
     page = 1,
-    limit = 20,
+    limit = 5,
     params?: { dateFrom?: string; dateTo?: string },
   ): Promise<ReceiptsListResponse> => {
     const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
