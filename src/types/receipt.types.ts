@@ -51,6 +51,11 @@ export interface CreateReceiptItemDto {
   /** Optional discount on this line; 0 by default. Server computes the final total. */
   discountAmount?: number;
   itemCategoryId?: string | null;
+  /**
+   * LLM-proposed new category name. When set and `itemCategoryId` is null, the
+   * server resolves/creates the category by normalized name on confirm.
+   */
+  suggestedCategoryName?: string | null;
 }
 
 export interface CreateReceiptDto {
@@ -80,7 +85,14 @@ export interface ParsedItem {
   discountAmount: number;
   totalPrice: number;
   hasDiscount: boolean;
+  /** Raw LLM category value — ignored by the client. */
   category: string | null;
+  /** Existing (user/system) category id auto-assigned by the LLM, or null. */
+  itemCategoryId: string | null;
+  /** Proposed new category name when no existing one matched, or null. */
+  suggestedCategoryName: string | null;
+  /** True when `suggestedCategoryName` is set. */
+  categoryIsNew: boolean;
   photoIndex?: number;
 }
 

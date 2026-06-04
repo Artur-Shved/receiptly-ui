@@ -170,7 +170,17 @@ function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel
   );
   const [discountAmountRaw, setDiscountAmountRaw] = useState(initialDiscount ? initialDiscount.toString() : '');
   const [itemCategoryId, setItemCategoryId] = useState<string>(item?.itemCategoryId ?? '');
+  // Keep the LLM suggestion only while no existing category is chosen.
+  const [suggestedCategoryName, setSuggestedCategoryName] = useState<string | null>(
+    item?.itemCategoryId ? null : (item?.suggestedCategoryName ?? null),
+  );
   const [error, setError] = useState<string | null>(null);
+
+  const handleCategoryChange = (id: string | null) => {
+    setItemCategoryId(id ?? '');
+    if (id) setSuggestedCategoryName(null);
+    else setSuggestedCategoryName(item?.itemCategoryId ? null : (item?.suggestedCategoryName ?? null));
+  };
 
   const qty = parseFloat(quantity) || 0;
   const price = parseFloat(pricePerUnit) || 0;
@@ -210,6 +220,7 @@ function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel
       originalAmount,
       discountAmount: discountAmount > 0 ? discountAmount : undefined,
       itemCategoryId: itemCategoryId || null,
+      suggestedCategoryName: itemCategoryId ? null : suggestedCategoryName,
     });
   };
 
@@ -279,15 +290,34 @@ function ItemSubModal({ item, itemCategories, onCreateCategory, onSave, onCancel
             </div>
           )}
           <div>
-            <label className="mb-1 block text-[12px] text-gray-500">Категорія товару</label>
+            <div className="mb-1 flex items-center gap-2">
+              <label className="text-[12px] text-gray-500">Категорія товару</label>
+              {!itemCategoryId && suggestedCategoryName && (
+                <span
+                  className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                  style={{ backgroundColor: '#EAF3DE', color: '#27500A' }}
+                >
+                  нова: {suggestedCategoryName}
+                </span>
+              )}
+            </div>
             <SearchableEntitySelect
               value={itemCategoryId || null}
-              onChange={(id) => setItemCategoryId(id ?? '')}
+              onChange={handleCategoryChange}
               items={itemCategories}
               onCreate={onCreateCategory}
-              placeholder="Без категорії"
+              placeholder={
+                !itemCategoryId && suggestedCategoryName
+                  ? `Буде створено «${suggestedCategoryName}»`
+                  : 'Без категорії'
+              }
               createOptionLabel={(q) => `Додати «${q}» як нову категорію товару`}
             />
+            {!itemCategoryId && suggestedCategoryName && (
+              <p className="mt-1 text-[11px] text-[#9ca3af]">
+                Авто-категорія від розпізнавання. Буде створена при збереженні, або оберіть існуючу.
+              </p>
+            )}
           </div>
         </div>
         <div className="mt-5 flex justify-end gap-2">
@@ -427,7 +457,8 @@ export default function QrUploadPage() {
           pricePerUnit: pi.pricePerUnit,
           originalAmount: pi.originalAmount,
           discountAmount: pi.discountAmount,
-          itemCategoryId: null,
+          itemCategoryId: pi.itemCategoryId ?? null,
+          suggestedCategoryName: pi.suggestedCategoryName ?? null,
         })),
       );
 
@@ -472,7 +503,10 @@ export default function QrUploadPage() {
         transactionCategoryId,
         receiptDate: parseResult?.receiptDate ?? todayDateString(),
         currency: parseResult?.currency ?? 'UAH',
-        items: items.map(({ _key: _k, ...rest }) => rest),
+        items: items.map(({ _key: _k, ...rest }) => ({
+          ...rest,
+          suggestedCategoryName: rest.itemCategoryId ? null : (rest.suggestedCategoryName ?? null),
+        })),
       });
       setStep('success');
     } catch {
@@ -787,7 +821,18 @@ export default function QrUploadPage() {
                     className="grid items-center border-t border-[#e5e7eb]"
                     style={{ gridTemplateColumns: '3fr 1fr 1fr 56px', padding: '8px 12px' }}
                   >
-                    <span className="text-[13px] text-[#1a1a1a]">{item.name}</span>
+                    <span className="flex items-center gap-2 text-[13px] text-[#1a1a1a]">
+                      {item.name}
+                      {!item.itemCategoryId && item.suggestedCategoryName && (
+                        <span
+                          className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                          style={{ backgroundColor: '#EAF3DE', color: '#27500A' }}
+                          title="Нова категорія буде створена при збереженні"
+                        >
+                          нова: {item.suggestedCategoryName}
+                        </span>
+                      )}
+                    </span>
                     <span className="text-[13px] text-[#6b7280]">
                       {item.quantity}{item.unit ? ` ${item.unit}` : ''}
                     </span>

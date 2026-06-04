@@ -5,6 +5,15 @@
 
 ---
 
+## Оновлено: 2026-06-04 — Авто-категоризація товарів при парсингу
+
+### Зміни
+- Types (`types/receipt.types.ts`): `ParsedItem` +`itemCategoryId: string|null`, `suggestedCategoryName: string|null`, `categoryIsNew: boolean` (legacy `category` ігнорується клієнтом); `CreateReceiptItemDto` +`suggestedCategoryName?: string|null`.
+- `app/receipts/upload/page.tsx` + `app/receipts/upload/qr/page.tsx`: при мапінгу parsed→items тепер `itemCategoryId: pi.itemCategoryId ?? null` (раніше завжди null) + зберігається `suggestedCategoryName`. На confirm кожен item: `suggestedCategoryName = itemCategoryId ? null : (suggestedCategoryName ?? null)` — існуюча категорія йде як id, нова пропозиція прокидається для створення на BE.
+- ItemSubModal: локальний стан `suggestedCategoryName` (seed з item, лише коли немає itemCategoryId); `handleCategoryChange` очищає suggestion при виборі існуючої категорії, відновлює при очищенні. Бейдж «нова: {name}» біля label «Категорія» + placeholder «Буде створено «{name}»» + хелпер-текст. Рядки товарів показують зелений бейдж «нова: {name}». Без еагерного створення — BE створює на confirm; inline-create через `createItemCategory` лишається для ручного.
+
+---
+
 ## Оновлено: 2026-05-31 — Item discounts
 
 ### Зміни
