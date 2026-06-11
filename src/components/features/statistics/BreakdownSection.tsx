@@ -1,6 +1,8 @@
 'use client';
 
 import { ChevronRight } from 'lucide-react';
+import { Skeleton } from '@/src/components/ui/Skeleton';
+import { categoryColor, NO_CATEGORY_CHART_COLOR } from '@/src/lib/category-colors';
 import type { BreakdownItem } from '@/src/types/statistics.types';
 
 interface Props {
@@ -20,6 +22,12 @@ function fmtMoney(n: number): string {
   return `${n.toLocaleString('uk-UA', { maximumFractionDigits: 0 })} ₴`;
 }
 
+/** Progress bar color: deterministic per entity id; NULL bucket → neutral. */
+export function barColor(id: string | null): string {
+  if (id === null || id === 'none') return NO_CATEGORY_CHART_COLOR;
+  return categoryColor(id).solid;
+}
+
 export function BreakdownSection({
   title,
   items,
@@ -34,10 +42,7 @@ export function BreakdownSection({
   const maxAmount = visible.length > 0 ? Math.max(...visible.map((i) => i.totalAmount)) : 0;
 
   return (
-    <div
-      className="overflow-hidden rounded-xl bg-white"
-      style={{ border: '0.5px solid #e5e7eb' }}
-    >
+    <div className="card-surface overflow-hidden rounded-[14px]">
       <div className="flex items-center justify-between border-b border-[#e5e7eb] px-4 py-3">
         <p className="text-[13px] font-medium text-[#1a1a1a]">{title}</p>
         {hasMore && onShowAll && (
@@ -54,7 +59,7 @@ export function BreakdownSection({
       {isLoading && !items && (
         <div className="px-4 py-6">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="mb-3 h-9 rounded bg-[#F7F7F7]" />
+            <Skeleton key={i} className="mb-3 h-9 w-full" />
           ))}
         </div>
       )}
@@ -76,19 +81,19 @@ export function BreakdownSection({
           >
             <div className="flex items-center justify-between">
               <span className="truncate text-[13px] text-[#1a1a1a]">{item.name}</span>
-              <span className="text-[13px] font-medium text-[#1a1a1a]">
+              <span className="tnum text-[13px] font-medium text-[#1a1a1a]">
                 {fmtMoney(item.totalAmount)}
               </span>
             </div>
             <div className="mt-1.5 h-[3px] w-full overflow-hidden rounded-full bg-[#F0F0F0]">
               <div
                 className="h-full"
-                style={{ width: `${barPct}%`, backgroundColor: '#1a1a1a' }}
+                style={{ width: `${barPct}%`, backgroundColor: barColor(item.id) }}
               />
             </div>
             <div className="mt-1 flex justify-between text-[11px] text-[#9ca3af]">
               <span>{countSuffix(item.count)}</span>
-              <span>{item.percentage.toFixed(1)}%</span>
+              <span className="tnum">{item.percentage.toFixed(1)}%</span>
             </div>
           </button>
         );

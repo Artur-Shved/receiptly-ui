@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/src/components/ui/Button';
+import { Skeleton } from '@/src/components/ui/Skeleton';
 import { statisticsApi } from '@/src/api/statistics.api';
 import { ApiError } from '@/src/types/api.types';
 import type {
@@ -97,7 +98,7 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
         <div className="flex items-start justify-between border-b border-[#e5e7eb] p-5">
           <div>
             <h2 className="text-[15px] font-medium text-[#1a1a1a]">{item.name}</h2>
-            <p className="mt-0.5 text-[12px] text-[#9ca3af]">
+            <p className="tnum mt-0.5 text-[12px] text-[#9ca3af]">
               {fmtMoney(item.totalAmount)} ₴ · {item.count} {header.suffix}
             </p>
           </div>
@@ -112,8 +113,10 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
 
         <div className="max-h-[480px] overflow-y-auto">
           {isLoading && (
-            <div className="flex justify-center py-10 text-[13px] text-[#9ca3af]">
-              Завантаження...
+            <div className="px-4 py-4">
+              {[0, 1, 2, 3].map((i) => (
+                <Skeleton key={i} className="mb-2 h-8 w-full" />
+              ))}
             </div>
           )}
 
@@ -155,7 +158,7 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
                   <span className="text-[13px] text-[#6b7280]">
                     {formatShortDate(r.receiptDate)}
                   </span>
-                  <span className="text-right text-[13px] font-medium text-[#1a1a1a]">
+                  <span className="tnum text-right text-[13px] font-medium text-[#1a1a1a]">
                     {fmtMoney(r.totalAmount)} ₴
                   </span>
                 </div>
@@ -173,7 +176,7 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
                   <span className="truncate text-[13px] text-[#1a1a1a]">
                     {r.transactionCategoryName ?? 'Без категорії'}
                   </span>
-                  <span className="text-right text-[13px] font-medium text-[#1a1a1a]">
+                  <span className="tnum text-right text-[13px] font-medium text-[#1a1a1a]">
                     {fmtMoney(r.totalAmount)} ₴
                   </span>
                 </div>
@@ -187,10 +190,10 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
                 >
                   <span className="truncate text-[13px] text-[#1a1a1a]">{it.name}</span>
                   <span className="truncate text-[13px] text-[#6b7280]">{it.storeName ?? '—'}</span>
-                  <span className="text-[13px] text-[#6b7280]">
+                  <span className="tnum text-[13px] text-[#6b7280]">
                     {it.quantity}{it.unit ? ` ${it.unit}` : ''}
                   </span>
-                  <span className="text-right text-[13px] font-medium text-[#1a1a1a]">
+                  <span className="tnum text-right text-[13px] font-medium text-[#1a1a1a]">
                     {fmtMoney(it.totalPrice)} ₴
                   </span>
                 </div>

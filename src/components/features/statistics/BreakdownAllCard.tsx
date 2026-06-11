@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowLeft } from 'lucide-react';
+import { barColor } from '@/src/components/features/statistics/BreakdownSection';
 import type { BreakdownItem } from '@/src/types/statistics.types';
 
 interface Props {
@@ -30,7 +31,7 @@ export function BreakdownAllCard({
   const maxAmount = items.length > 0 ? Math.max(...items.map((i) => i.totalAmount)) : 0;
 
   return (
-    <div className="overflow-hidden rounded-xl bg-white" style={{ border: '0.5px solid #e5e7eb' }}>
+    <div className="card-surface overflow-hidden rounded-[14px]">
       <div className="flex items-center justify-between border-b border-[#e5e7eb] px-4 py-3">
         <div className="flex items-center gap-3">
           <button
@@ -62,16 +63,16 @@ export function BreakdownAllCard({
               >
                 <div className="flex items-center justify-between">
                   <span className="truncate text-[13px] text-[#1a1a1a]">{item.name}</span>
-                  <span className="text-[13px] font-medium text-[#1a1a1a]">
+                  <span className="tnum text-[13px] font-medium text-[#1a1a1a]">
                     {fmtMoney(item.totalAmount)}
                   </span>
                 </div>
                 <div className="mt-1.5 h-[3px] w-full overflow-hidden rounded-full bg-[#F0F0F0]">
-                  <div className="h-full" style={{ width: `${barPct}%`, backgroundColor: '#1a1a1a' }} />
+                  <div className="h-full" style={{ width: `${barPct}%`, backgroundColor: barColor(item.id) }} />
                 </div>
                 <div className="mt-1 flex justify-between text-[11px] text-[#9ca3af]">
                   <span>{countSuffix(item.count)}</span>
-                  <span>{item.percentage.toFixed(1)}%</span>
+                  <span className="tnum">{item.percentage.toFixed(1)}%</span>
                 </div>
               </button>
             );

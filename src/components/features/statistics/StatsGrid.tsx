@@ -1,6 +1,7 @@
 'use client';
 
 import { Coins, Receipt, TrendingDown, TrendingUp } from 'lucide-react';
+import { Skeleton } from '@/src/components/ui/Skeleton';
 import type { SummaryResponse } from '@/src/types/statistics.types';
 
 interface Props {
@@ -49,12 +50,12 @@ function Card({
   trend?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl bg-white p-4" style={{ border: '0.5px solid #e5e7eb' }}>
+    <div className="card-surface rounded-[14px] p-4">
       <div className="mb-2 flex items-center gap-2 text-[12px] text-[#6b7280]">
         {icon}
         {label}
       </div>
-      <p className="text-[24px] font-medium text-[#1a1a1a]">{value}</p>
+      <p className="tnum text-[28px] font-semibold text-[#1a1a1a]">{value}</p>
       {trend && <div className="mt-1">{trend}</div>}
     </div>
   );
@@ -62,10 +63,10 @@ function Card({
 
 function CardSkeleton() {
   return (
-    <div className="rounded-xl bg-white p-4" style={{ border: '0.5px solid #e5e7eb' }}>
-      <div className="mb-2 h-3 w-24 rounded bg-[#F0F0F0]" />
-      <div className="h-7 w-20 rounded bg-[#F0F0F0]" />
-      <div className="mt-2 h-3 w-32 rounded bg-[#F0F0F0]" />
+    <div className="card-surface rounded-[14px] p-4">
+      <Skeleton className="mb-2 h-3 w-24" />
+      <Skeleton className="h-8 w-28" />
+      <Skeleton className="mt-2 h-3 w-32" />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Skeleton } from '@/src/components/ui/Skeleton';
 import type { TimelineResponse, Granularity } from '@/src/types/statistics.types';
 
 interface Props {
@@ -29,24 +30,41 @@ function fmtMoney(n: number): string {
   return n.toLocaleString('uk-UA', { maximumFractionDigits: 0 });
 }
 
+/**
+ * Bar with rounded TOP corners only. The svg is stretched
+ * (preserveAspectRatio="none": x in 0–100 viewBox units, y in px), so the
+ * corner radii are given separately per axis and drawn with quadratic curves.
+ */
+function topRoundedBarPath(x: number, y: number, w: number, h: number): string {
+  if (h <= 0 || w <= 0) return '';
+  const ry = Math.min(3, h); // ≈3px vertical radius
+  const rx = Math.min(0.6, w / 2); // ≈3px horizontal radius after stretch
+  return [
+    `M ${x} ${y + h}`,
+    `L ${x} ${y + ry}`,
+    `Q ${x} ${y} ${x + rx} ${y}`,
+    `L ${x + w - rx} ${y}`,
+    `Q ${x + w} ${y} ${x + w} ${y + ry}`,
+    `L ${x + w} ${y + h}`,
+    'Z',
+  ].join(' ');
+}
+
 export function TimelineChart({ data, isLoading }: Props) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   if (isLoading && !data) {
     return (
-      <div className="rounded-xl bg-white p-5" style={{ border: '0.5px solid #e5e7eb' }}>
-        <div className="mb-3 h-3 w-32 rounded bg-[#F0F0F0]" />
-        <div className="h-[160px] w-full rounded bg-[#F7F7F7]" />
+      <div className="card-surface rounded-[14px] p-5">
+        <Skeleton className="mb-3 h-3 w-32" />
+        <Skeleton className="h-[160px] w-full" />
       </div>
     );
   }
 
   if (!data || data.points.length === 0) {
     return (
-      <div
-        className="flex flex-col items-center justify-center rounded-xl bg-white py-10"
-        style={{ border: '0.5px solid #e5e7eb' }}
-      >
+      <div className="card-surface flex flex-col items-center justify-center rounded-[14px] py-10">
         <p className="text-[13px] text-[#9ca3af]">Немає даних за цей період</p>
       </div>
     );
@@ -72,11 +90,11 @@ export function TimelineChart({ data, isLoading }: Props) {
   const barW = Math.max(2, (100 - padLeft - padRight) / n - gap * 0.05);
 
   return (
-    <div className="rounded-xl bg-white p-5" style={{ border: '0.5px solid #e5e7eb' }}>
+    <div className="card-surface rounded-[14px] p-5">
       <p className="mb-1 text-[13px] font-medium text-[#1a1a1a]">
         {titleByGranularity[data.granularity]}
       </p>
-      <p className="mb-3 text-[11px] text-[#9ca3af]">
+      <p className="tnum mb-3 text-[11px] text-[#9ca3af]">
         Максимум: {fmtMoney(max)} ₴ · точок: {n}
       </p>
 
@@ -105,14 +123,10 @@ export function TimelineChart({ data, isLoading }: Props) {
             const x = (idx / n) * (width - padLeft - padRight) + padLeft + 0.5;
             const y = padTop + innerH - h;
             return (
-              <rect
+              <path
                 key={p.period}
-                x={x}
-                y={y}
-                width={barW - 1}
-                height={h}
-                rx={0.5}
-                fill={hoverIdx === idx ? '#0F6E56' : '#1a1a1a'}
+                d={topRoundedBarPath(x, y, barW - 1, h)}
+                fill={hoverIdx === idx ? 'var(--brand-strong)' : 'var(--brand)'}
                 onMouseEnter={() => setHoverIdx(idx)}
                 onMouseLeave={() => setHoverIdx(null)}
                 style={{ cursor: 'pointer' }}
@@ -122,7 +136,7 @@ export function TimelineChart({ data, isLoading }: Props) {
         </svg>
 
         {/* Y-axis labels (overlay) */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 flex flex-col justify-between py-[8px] pb-[24px] pl-1 text-[10px] text-[#9ca3af]">
+        <div className="tnum pointer-events-none absolute inset-y-0 left-0 flex flex-col justify-between py-[8px] pb-[24px] pl-1 text-[10px] text-[#9ca3af]">
           <span>{fmtMoney(max)}</span>
           <span>{fmtMoney(max / 2)}</span>
           <span>0</span>
@@ -154,7 +168,7 @@ export function TimelineChart({ data, isLoading }: Props) {
             }}
           >
             <div>{formatTick(data.points[hoverIdx].period, data.granularity)}</div>
-            <div className="font-medium">
+            <div className="tnum font-medium">
               {fmtMoney(data.points[hoverIdx].totalAmount)} ₴
             </div>
             <div className="opacity-70">{data.points[hoverIdx].receiptsCount} чеків</div>
