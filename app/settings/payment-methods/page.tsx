@@ -377,12 +377,15 @@ export default function PaymentMethodsPage() {
         /* Empty state */
         <div className="mt-5 overflow-hidden rounded-lg border border-[#e5e7eb] bg-white">
           <div className="flex flex-col items-center gap-2.5 px-6 py-12 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F7F7F7]">
-              <CreditCard size={24} className="text-[#9ca3af]" />
+            <div
+              className="flex h-[52px] w-[52px] items-center justify-center rounded-full"
+              style={{ backgroundColor: 'var(--brand-soft)' }}
+            >
+              <CreditCard size={24} style={{ color: 'var(--brand)' }} />
             </div>
-            <p className="text-[15px] font-medium text-[#1a1a1a]">Немає методів оплати</p>
+            <p className="text-[15px] font-medium text-[#1a1a1a]">Поки порожньо</p>
             <p className="max-w-[280px] text-[13px] leading-[1.5] text-gray-500">
-              Додайте перший метод оплати — картку, готівку або цифровий гаманець
+              Додайте перший запис — це займе секунди
             </p>
             <Button
               fullWidth={false}
