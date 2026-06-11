@@ -87,15 +87,16 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto py-8"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
       onClick={onClose}
     >
       <div
-        className="w-[520px] max-w-[calc(100%-32px)] rounded-xl bg-white shadow-xl"
+        className="flex w-[520px] max-w-full flex-col rounded-xl bg-white shadow-xl"
+        style={{ maxHeight: 'min(560px, calc(100vh - 32px))' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between border-b border-[#e5e7eb] p-5">
+        <div className="flex flex-shrink-0 items-start justify-between border-b border-[#e5e7eb] p-5">
           <div>
             <h2 className="text-[15px] font-medium text-[#1a1a1a]">{item.name}</h2>
             <p className="tnum mt-0.5 text-[12px] text-[#9ca3af]">
@@ -111,7 +112,7 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
           </button>
         </div>
 
-        <div className="max-h-[480px] overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {isLoading && (
             <div className="px-4 py-4">
               {[0, 1, 2, 3].map((i) => (
@@ -208,7 +209,7 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t border-[#e5e7eb] p-4">
+        <div className="flex flex-shrink-0 items-center justify-between border-t border-[#e5e7eb] p-4">
           <span className="text-[12px] text-[#9ca3af]">
             Показано {shown} з {total}
           </span>
