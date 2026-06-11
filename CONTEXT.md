@@ -5,6 +5,24 @@
 
 ---
 
+## Оновлено: 2026-06-11 — Web Design Refresh (гілка `design/web-refresh`)
+
+> Специфікація: `.claude/context/design/web-design-refresh.md` (бренд-колір + «колір як дані» + великі суми + анімації в ключових моментах). Mobile не зачеплено.
+
+### Foundation
+- `globals.css`: токени `--brand #0F6E56`/`--brand-strong`/`--brand-soft`/`--brand-gradient`/`--focus-ring`/`--shadow-*`; утиліти `.tnum` (tabular-nums), `.card-surface`, `.card-hover`; keyframes `scanline`/`shimmer`/`pop-in`/`fade-swap`.
+- `src/lib/category-colors.ts`: `categoryColor(id) → {bg,text,solid}` — детермінована палітра 10 кольорів за UUID (бейджі, donut, breakdown, аватари магазинів) + `NO_CATEGORY_CHART_COLOR`.
+- `Button`: primary = brand-зелений (hover `--brand-strong`, active scale), secondary = tinted `#F0F0F3` без hairline; `Input`: brand focus ring; новий `src/components/ui/Skeleton.tsx` (shimmer).
+
+### Сторінки
+- **Home**: hero-картка `--brand-gradient` («Витрачено у {місяць}», 32px/600 tnum, копійки 20px) + quick actions (3 тайли: Фото/QR/Вручну) + skeleton loading; `CategoryBadge` і аватар магазину через `categoryColor`; TopNav активний лінк = brand + underline.
+- **/receipts**: групування рядків по днях («Сьогодні/Вчора/9 червня», sticky-стилем), кольорові бейджі категорій і аватари магазинів (categoryColor), суми 15px/600 tnum, hover `#FAFAFB`, 6 skeleton-рядків на першому load, теплий empty state (brand-soft іконка). `ReceiptDetailsModal.ItemCategoryBadge` приймає `id` → categoryColor («Без кат.» стиль незмінний).
+- **Upload (LLM)**: Step 2 — стрічка мініатюр фото зі `scanline`+shimmer на processing, done/error бейджики, ротація підказок кожні 2.2с (`PARSE_HINTS`, fade-swap), progress bar = brand. Step 4 — `pop-in` чекмарк + рядок «Додано N {товар|товари|товарів} на [сума] ₴» з count-up (`src/hooks/useCountUp.ts`, rAF ~700мс). Те саме на QR-success.
+- **/statistics**: stat values 28px/600 tnum; Donut/Breakdown/легенда — categoryColor.solid (NULL → `#94A3B8`), анімація donut 400мс; TimelineChart — brand-бари з заокругленими верхніми кутами (`topRoundedBarPath`); skeleton-стани всюди; теплий empty state.
+- Логіка/хуки/запити НЕ змінювались (pure presentation). `tsc` чистий, `next build` проходить.
+
+---
+
 ## Оновлено: 2026-06-11 — Store: без еагерного створення (резолв на parse, створення на confirm)
 
 ### Зміни
