@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Camera, Receipt } from 'lucide-react';
 import { TopNav } from '@/src/components/features/home/TopNav';
 import { Button } from '@/src/components/ui/Button';
+import { ReceiptDetailsModal } from '@/src/components/features/receipts/ReceiptDetailsModal';
 import { useLogout } from '@/src/hooks/useAuth';
 import { authApi } from '@/src/api/auth.api';
 import { receiptsApi } from '@/src/api/receipts.api';
@@ -107,8 +109,16 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
 }
 
 export default function HomePage() {
+  const router = useRouter();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { logout } = useLogout();
+
+  // Receipt opened in place on the home screen (no navigation to /receipts).
+  const [detailsReceipt, setDetailsReceipt] = useState<ReceiptType | null>(null);
+  const openReceipt = (id: string) => {
+    // Fetch the full receipt so the details modal has its items.
+    receiptsApi.getOne(id).then(setDetailsReceipt).catch(() => {});
+  };
 
   const [userName, setUserName] = useState<string | null>(null);
   const [receipts, setReceipts] = useState<ReceiptType[]>([]);
@@ -243,9 +253,12 @@ export default function HomePage() {
               const storeName = receipt.store?.name ?? '—';
               const color = storeColor(storeName);
               return (
-                <Link
+                <div
                   key={receipt.id}
-                  href={`/receipts?receiptId=${receipt.id}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openReceipt(receipt.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') openReceipt(receipt.id); }}
                   className="grid cursor-pointer items-center border-t border-[#e5e7eb] px-4 py-3 hover:bg-[#FAFAFA]"
                   style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr' }}
                 >
@@ -266,13 +279,22 @@ export default function HomePage() {
                   <span className="text-right text-[14px] font-medium text-[#1a1a1a]">
                     {receipt.totalAmount} {receipt.currency}
                   </span>
-                </Link>
+                </div>
               );
             })}
           </div>
         )}
         </div>
       </main>
+
+      {detailsReceipt && (
+        <ReceiptDetailsModal
+          receipt={detailsReceipt}
+          onClose={() => setDetailsReceipt(null)}
+          onEdit={() => router.push(`/receipts?receiptId=${detailsReceipt.id}`)}
+          onDelete={() => router.push(`/receipts?receiptId=${detailsReceipt.id}`)}
+        />
+      )}
 
       {showLogoutModal && (
         <LogoutModal

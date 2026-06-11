@@ -11,7 +11,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANTS = {
   primary: 'bg-[#1a1a1a] text-white py-[14px] px-4 font-medium',
-  secondary: 'bg-transparent border border-[#d1d5db] py-[13px] px-4',
+  secondary: 'bg-transparent border border-[#d1d5db] text-[#1a1a1a] py-[13px] px-4',
   danger: 'bg-[#FCEBEB] text-[#A32D2D] py-[13px] px-4 font-medium',
 } as const;
 

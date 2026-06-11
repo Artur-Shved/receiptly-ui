@@ -61,7 +61,7 @@ function CreateModal({ onClose, onCreate }: CreateModalProps) {
       >
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-[16px] font-medium">Новий метод оплати</h2>
+          <h2 className="text-[16px] font-medium text-[#1a1a1a]">Новий метод оплати</h2>
           <button
             type="button"
             onClick={onClose}
@@ -157,7 +157,7 @@ function EditModal({ method, onClose, onUpdate }: EditModalProps) {
       >
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-[16px] font-medium">Редагувати метод оплати</h2>
+          <h2 className="text-[16px] font-medium text-[#1a1a1a]">Редагувати метод оплати</h2>
           <button
             type="button"
             onClick={onClose}
@@ -236,7 +236,7 @@ function DeleteModal({ method, onClose, onDelete }: DeleteModalProps) {
       >
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[16px] font-medium">Видалити метод оплати?</h2>
+          <h2 className="text-[16px] font-medium text-[#1a1a1a]">Видалити метод оплати?</h2>
           <button
             type="button"
             onClick={onClose}
@@ -370,7 +370,7 @@ export default function PaymentMethodsPage() {
       )}
 
       {isLoading ? (
-        <div className="mt-5 flex items-center justify-center py-12 text-[13px] text-gray-400">
+        <div className="mt-5 flex items-center justify-center py-12 text-[13px] text-gray-500">
           Завантаження...
         </div>
       ) : methods.length === 0 && !error ? (
