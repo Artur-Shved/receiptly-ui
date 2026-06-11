@@ -214,7 +214,6 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
             Показано {shown} з {total}
           </span>
           <Button
-            variant="secondary"
             fullWidth={false}
             className="py-2 px-4 text-[12px]"
             onClick={onClose}
