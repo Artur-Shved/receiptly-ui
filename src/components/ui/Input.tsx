@@ -40,8 +40,8 @@ export function Input({
           {...props}
           type={inputType}
           className={[
-            'h-[42px] w-full rounded-lg border bg-white px-3 text-sm text-[#1a1a1a] outline-none placeholder:text-[#9ca3af]',
-            'transition-colors focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]',
+            'h-[42px] w-full rounded-[10px] border bg-white px-3 text-sm text-[#1a1a1a] outline-none placeholder:text-[#9ca3af]',
+            'transition-colors focus:border-[var(--brand)] focus:[box-shadow:var(--focus-ring)]',
             hasSuffix ? 'pr-10' : '',
             borderClass,
             className,

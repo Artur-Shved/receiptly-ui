@@ -3,6 +3,18 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* ── Design refresh tokens (see .claude/context/design/web-design-refresh.md) ── */
+  --brand: #0F6E56;
+  --brand-strong: #0B5443;
+  --brand-soft: #E1F5EE;
+  --brand-soft-text: #0F6E56;
+  --brand-gradient: linear-gradient(135deg, #0B5443 0%, #16A37B 100%);
+  --focus-ring: 0 0 0 3px rgba(15, 110, 86, 0.25);
+
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.07);
+  --shadow-card-hover: 0 4px 14px rgba(16, 24, 40, 0.1);
+  --shadow-modal: 0 12px 32px rgba(16, 24, 40, 0.16);
 }
 
 @theme inline {
@@ -16,4 +28,104 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Tabular figures for money — digits keep a fixed width so amounts align. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Card surface: soft shadow + hairline border (radius set per-component). */
+.card-surface {
+  border: 0.5px solid #ececef;
+  box-shadow: var(--shadow-card);
+  background: #ffffff;
+}
+
+/* Clickable cards/tiles lift slightly on hover. */
+.card-hover {
+  transition: box-shadow 150ms ease, transform 150ms ease;
+}
+.card-hover:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
+/* ── Animations ─────────────────────────────────────────────────────────── */
+
+/* Scan line sweeping over a photo while the LLM is reading it. */
+@keyframes scanline {
+  0% {
+    top: 4%;
+  }
+  50% {
+    top: 92%;
+  }
+  100% {
+    top: 4%;
+  }
+}
+.scanline {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--brand);
+  box-shadow: 0 0 8px 2px rgba(22, 163, 123, 0.55);
+  animation: scanline 1.6s ease-in-out infinite;
+}
+
+/* Shimmer sweep for skeletons and the scanning overlay. */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.shimmer {
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 35%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 65%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+/* Success checkmark pop. */
+@keyframes pop-in {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.pop-in {
+  animation: pop-in 400ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+/* Crossfade for rotating status messages. */
+@keyframes fade-swap {
+  0% {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-swap {
+  animation: fade-swap 300ms ease both;
 }
