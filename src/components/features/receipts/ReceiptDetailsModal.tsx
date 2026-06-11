@@ -2,6 +2,7 @@
 
 import { X, Trash2, Pencil } from 'lucide-react';
 import { Button } from '@/src/components/ui/Button';
+import { categoryColor } from '@/src/lib/category-colors';
 import type { Receipt as ReceiptType } from '@/src/types/receipt.types';
 
 /** Long Ukrainian date, e.g. "2 червня 2026 р." */
@@ -10,7 +11,13 @@ export function formatFullDate(iso: string): string {
   return d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-export function ItemCategoryBadge({ name }: { name: string | null | undefined }) {
+export function ItemCategoryBadge({
+  id,
+  name,
+}: {
+  id?: string | null;
+  name: string | null | undefined;
+}) {
   if (!name) {
     return (
       <span
@@ -21,8 +28,19 @@ export function ItemCategoryBadge({ name }: { name: string | null | undefined })
       </span>
     );
   }
+  if (!id) {
+    return (
+      <span className="rounded-full bg-[#F7F7F7] px-2 py-0.5 text-[11px] text-[#6b7280]">
+        {name}
+      </span>
+    );
+  }
+  const { bg, text } = categoryColor(id);
   return (
-    <span className="rounded-full bg-[#F7F7F7] px-2 py-0.5 text-[11px] text-[#6b7280]">
+    <span
+      className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+      style={{ backgroundColor: bg, color: text }}
+    >
       {name}
     </span>
   );
@@ -104,7 +122,7 @@ export function ReceiptDetailsModal({ receipt, onClose, onEdit, onDelete }: Rece
                 style={{ gridTemplateColumns: '3fr 1fr 1fr 1fr 60px', padding: '8px 12px' }}
               >
                 <span className="text-[13px] text-[#1a1a1a]">{item.name}</span>
-                <span><ItemCategoryBadge name={item.itemCategory?.name} /></span>
+                <span><ItemCategoryBadge id={item.itemCategory?.id} name={item.itemCategory?.name} /></span>
                 <span className="text-[13px] text-[#6b7280]">{item.quantity}{item.unit ? ` ${item.unit}` : ''}</span>
                 <span className="text-[13px] text-[#6b7280]">{item.pricePerUnit} {receipt.currency}</span>
                 <span className="text-right text-[13px] text-[#1a1a1a]">

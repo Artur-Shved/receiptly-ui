@@ -23,6 +23,8 @@ import {
   ItemCategoryBadge,
 } from '@/src/components/features/receipts/ReceiptDetailsModal';
 import { receiptsApi } from '@/src/api/receipts.api';
+import { Skeleton } from '@/src/components/ui/Skeleton';
+import { categoryColor } from '@/src/lib/category-colors';
 import { useLogout } from '@/src/hooks/useAuth';
 import { useReceipts } from '@/src/hooks/useReceipts';
 import { useStores } from '@/src/hooks/useStores';
@@ -37,23 +39,6 @@ import type {
 import type { ItemCategory } from '@/src/types/item-category.types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const STORE_COLORS = ['#6366f1', '#f59e0b', '#8b5cf6', '#3b82f6', '#ef4444'];
-function storeColor(name: string): string {
-  return STORE_COLORS[name.charCodeAt(0) % STORE_COLORS.length];
-}
-
-const CATEGORY_COLORS = [
-  { bg: '#DBEAFE', text: '#1D4ED8' },
-  { bg: '#D1FAE5', text: '#065F46' },
-  { bg: '#FEF3C7', text: '#92400E' },
-  { bg: '#FCE7F3', text: '#9D174D' },
-  { bg: '#EDE9FE', text: '#5B21B6' },
-  { bg: '#FFEDD5', text: '#C2410C' },
-];
-function categoryColor(name: string) {
-  return CATEGORY_COLORS[name.charCodeAt(0) % CATEGORY_COLORS.length];
-}
 
 const UK_MONTHS_SHORT = [
   'січ', 'лют', 'бер', 'квіт', 'трав', 'черв',
@@ -78,17 +63,38 @@ function toDateInputValue(iso: string): string {
   return iso.slice(0, 10);
 }
 
+const UK_MONTHS_GENITIVE = [
+  'січня', 'лютого', 'березня', 'квітня', 'травня', 'червня',
+  'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня',
+];
+
+/** Day-group header label: «Сьогодні» / «Вчора» / «9 червня» (+ рік якщо не поточний). */
+function formatGroupLabel(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diffDays = Math.round((startOfDay(now) - startOfDay(d)) / 86_400_000);
+  if (diffDays === 0) return 'Сьогодні';
+  if (diffDays === 1) return 'Вчора';
+  const base = `${d.getDate()} ${UK_MONTHS_GENITIVE[d.getMonth()]}`;
+  return d.getFullYear() === now.getFullYear() ? base : `${base} ${d.getFullYear()}`;
+}
+
 // ─── Badges ───────────────────────────────────────────────────────────────────
 
-function TransactionCategoryBadge({ name }: { name: string | null | undefined }) {
-  if (!name) return <span className="text-[12px] text-[#9ca3af]">—</span>;
-  const { bg, text } = categoryColor(name);
+function TransactionCategoryBadge({
+  category,
+}: {
+  category: { id: string; name: string } | null | undefined;
+}) {
+  if (!category) return <span className="text-[12px] text-[#9ca3af]">—</span>;
+  const { bg, text } = categoryColor(category.id);
   return (
     <span
       className="rounded-full px-2 py-0.5 text-[12px] font-medium"
       style={{ backgroundColor: bg, color: text }}
     >
-      {name}
+      {category.name}
     </span>
   );
 }
@@ -440,7 +446,10 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
               return (
                 <div key={item._key} className="flex items-center gap-3 border-b border-[#e5e7eb] p-3 last:border-b-0">
                   <span className="flex-1 text-[13px] text-[#1a1a1a]">{item.name}</span>
-                  <ItemCategoryBadge name={item.itemCategoryId ? itemCategories.find((c) => c.id === item.itemCategoryId)?.name : null} />
+                  <ItemCategoryBadge
+                    id={item.itemCategoryId}
+                    name={item.itemCategoryId ? itemCategories.find((c) => c.id === item.itemCategoryId)?.name : null}
+                  />
                   <span className="text-[13px] text-[#6b7280]">{item.quantity}{item.unit ? ` ${item.unit}` : ''}</span>
                   {discount > 0 ? (
                     <span className="flex flex-col items-end leading-tight">
@@ -653,6 +662,20 @@ export default function ReceiptsPage() {
     });
   }, [receipts, searchQuery, filterYearMonth, filterCategoryId]);
 
+  // Day groups, derived from the (already date-desc sorted) filtered array.
+  // Sequential grouping — append via "Завантажити ще" naturally extends the
+  // last group; nothing is stored in state.
+  const dayGroups = useMemo(() => {
+    const groups: { key: string; label: string; receipts: ReceiptType[] }[] = [];
+    for (const r of filtered) {
+      const key = r.receiptDate.slice(0, 10);
+      const last = groups[groups.length - 1];
+      if (last && last.key === key) last.receipts.push(r);
+      else groups.push({ key, label: formatGroupLabel(r.receiptDate), receipts: [r] });
+    }
+    return groups;
+  }, [filtered]);
+
   const handleDelete = async (id: string) => {
     const result = await removeReceipt(id);
     if (!result.error) { setDetailsReceipt(null); setDeleteReceipt(null); }
@@ -750,7 +773,7 @@ export default function ReceiptsPage() {
                       onClick={() => { setFilterCategoryId(c.id); setCatOpen(false); }}
                       className={`flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] hover:bg-[#F7F7F7] ${filterCategoryId === c.id ? 'font-medium text-[#1a1a1a]' : 'text-[#6b7280]'}`}
                     >
-                      <TransactionCategoryBadge name={c.name} />
+                      <TransactionCategoryBadge category={c} />
                     </button>
                   ))}
                 </div>
@@ -783,20 +806,36 @@ export default function ReceiptsPage() {
             </div>
           )}
 
-          {/* Loading */}
+          {/* Loading — skeleton rows on first load */}
           {isLoading && receipts.length === 0 && (
-            <div className="flex justify-center py-16 text-[13px] text-gray-500">Завантаження...</div>
+            <div className="card-surface overflow-hidden rounded-[14px]">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 border-t border-[#ECECEF] px-4 py-3 first:border-t-0"
+                >
+                  <Skeleton className="h-[30px] w-[30px] flex-shrink-0 rounded-full" />
+                  <Skeleton className="h-[14px] w-[140px]" />
+                  <Skeleton className="h-[20px] w-[96px] rounded-full" />
+                  <div className="flex-1" />
+                  <Skeleton className="h-[14px] w-[72px]" />
+                </div>
+              ))}
+            </div>
           )}
 
           {/* Empty state */}
           {!isLoading && !error && receipts.length === 0 && (
-            <div className="flex flex-col items-center rounded-xl border border-[#e5e7eb] bg-white py-16">
-              <div className="mb-4 flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#F7F7F7]">
-                <Receipt size={24} color="#9ca3af" />
+            <div className="card-surface flex flex-col items-center rounded-[14px] py-16">
+              <div
+                className="mb-4 flex h-[52px] w-[52px] items-center justify-center rounded-full"
+                style={{ backgroundColor: 'var(--brand-soft)' }}
+              >
+                <Receipt size={24} style={{ color: 'var(--brand)' }} />
               </div>
-              <h3 className="mb-2 text-[16px] font-medium text-[#1a1a1a]">Жодного чеку</h3>
+              <h3 className="mb-2 text-[16px] font-medium text-[#1a1a1a]">Тут з&apos;являться ваші чеки</h3>
               <p className="mb-6 max-w-xs text-center text-[14px] text-gray-500">
-                Додайте перший чек щоб почати відстежувати витрати
+                Сфотографуйте перший чек — ми розпізнаємо товари й порахуємо все за вас
               </p>
               <Button fullWidth={false} onClick={() => setShowAddChoice(true)}>
                 Додати чек
@@ -806,7 +845,7 @@ export default function ReceiptsPage() {
 
           {/* Table */}
           {!error && filtered.length > 0 && (
-            <div className="overflow-hidden rounded-lg bg-white" style={{ border: '1px solid #e5e7eb' }}>
+            <div className="card-surface overflow-hidden rounded-[14px]">
               {/* Header */}
               <div
                 className="grid text-[11px] uppercase tracking-wide text-[#9ca3af]"
@@ -820,58 +859,73 @@ export default function ReceiptsPage() {
                 <span className="text-right">Дії</span>
               </div>
 
-              {/* Rows */}
-              {filtered.map((receipt) => {
-                const storeName = receipt.store?.name ?? '—';
-                const color = storeColor(storeName);
-                return (
+              {/* Day groups */}
+              {dayGroups.map((group) => (
+                <div key={group.key}>
+                  {/* Group header */}
                   <div
-                    key={receipt.id}
-                    className="group grid cursor-pointer items-center border-t border-[#e5e7eb] px-4 py-3 hover:bg-[#FAFAFA]"
-                    style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr 80px' }}
-                    onClick={() => setDetailsReceipt(receipt)}
+                    className="border-t border-[#e5e7eb] text-[12px] font-medium uppercase tracking-wide"
+                    style={{ backgroundColor: '#F7F7F8', color: '#60646C', padding: '6px 16px' }}
                   >
-                    {/* Store */}
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full text-[13px] font-medium text-white"
-                        style={{ backgroundColor: color }}
-                      >
-                        {storeName.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="text-[14px] font-medium text-[#1a1a1a]">{storeName}</span>
-                    </div>
-
-                    {/* Transaction Category */}
-                    <div>
-                      <TransactionCategoryBadge name={receipt.transactionCategory?.name} />
-                    </div>
-
-                    {/* Payment Method */}
-                    <span className="text-[13px] text-[#6b7280]">
-                      {receipt.paymentMethod?.name ?? '—'}
-                    </span>
-
-                    {/* Date */}
-                    <span className="text-[13px] text-[#6b7280]">{formatShortDate(receipt.receiptDate)}</span>
-
-                    {/* Amount */}
-                    <span className="text-right text-[14px] font-medium text-[#1a1a1a]">
-                      {receipt.totalAmount} {receipt.currency}
-                    </span>
-
-                    {/* Actions */}
-                    <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
-                      <button type="button" onClick={() => setEditReceipt(receipt)} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#F7F7F7] hover:text-[#1a1a1a]">
-                        <Pencil size={13} />
-                      </button>
-                      <button type="button" onClick={() => setDeleteReceipt(receipt)} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#FCEBEB] hover:text-[#A32D2D]">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
+                    {group.label}
                   </div>
-                );
-              })}
+
+                  {/* Rows */}
+                  {group.receipts.map((receipt) => {
+                    const storeName = receipt.store?.name ?? '—';
+                    const storeC = receipt.store
+                      ? categoryColor(receipt.store.id)
+                      : { bg: '#F0F0F3', text: '#60646C' };
+                    return (
+                      <div
+                        key={receipt.id}
+                        className="group grid cursor-pointer items-center border-t border-[#e5e7eb] px-4 py-3 hover:bg-[#FAFAFB]"
+                        style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr 80px' }}
+                        onClick={() => setDetailsReceipt(receipt)}
+                      >
+                        {/* Store */}
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full text-[13px] font-medium"
+                            style={{ backgroundColor: storeC.bg, color: storeC.text }}
+                          >
+                            {storeName.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-[14px] font-medium text-[#1a1a1a]">{storeName}</span>
+                        </div>
+
+                        {/* Transaction Category */}
+                        <div>
+                          <TransactionCategoryBadge category={receipt.transactionCategory} />
+                        </div>
+
+                        {/* Payment Method */}
+                        <span className="text-[13px] text-[#6b7280]">
+                          {receipt.paymentMethod?.name ?? '—'}
+                        </span>
+
+                        {/* Date */}
+                        <span className="text-[13px] text-[#6b7280]">{formatShortDate(receipt.receiptDate)}</span>
+
+                        {/* Amount */}
+                        <span className="tnum text-right text-[15px] font-semibold text-[#1a1a1a]">
+                          {receipt.totalAmount} {receipt.currency}
+                        </span>
+
+                        {/* Actions */}
+                        <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
+                          <button type="button" onClick={() => setEditReceipt(receipt)} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#F7F7F7] hover:text-[#1a1a1a]">
+                            <Pencil size={13} />
+                          </button>
+                          <button type="button" onClick={() => setDeleteReceipt(receipt)} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#FCEBEB] hover:text-[#A32D2D]">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           )}
 
