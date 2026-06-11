@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   X,
@@ -569,7 +569,7 @@ export default function ReceiptUploadPage() {
   const { logout } = useLogout();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const { stores, isLoading: storesLoading, createStore } = useStores();
+  const { stores, createStore } = useStores();
   const { methods, createMethod } = usePaymentMethods();
   const { categories: txCategories, createCategory: createTxCategory } = useTransactionCategories();
   const { categories: itemCategories, createCategory: createItemCategory } = useItemCategories();
@@ -589,11 +589,12 @@ export default function ReceiptUploadPage() {
 
   // Step 3 — meta form (all optional)
   const [storeId, setStoreId] = useState<string | null>(null);
+  // Parse-proposed new store name; kept only while no existing store is selected.
+  // The store itself is created by the BE on confirm (no eager creation).
+  const [suggestedStoreName, setSuggestedStoreName] = useState<string | null>(null);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [transactionCategoryId, setTransactionCategoryId] = useState<string | null>(null);
   const [receiptDate, setReceiptDate] = useState<string>(todayDateString());
-  // Guards the post-parse store resolution so it runs exactly once per parse result.
-  const storeResolvedForRef = useRef<ParsedReceiptDto | null>(null);
   // Invalidates in-flight parse requests after a reset/re-run (stale .then
   // would otherwise auto-advance the wizard to step 3 with old data).
   const parseRunRef = useRef(0);
@@ -739,6 +740,10 @@ export default function ReceiptUploadPage() {
           })),
         );
         setReceiptDate(result.receiptDate?.slice(0, 10) ?? todayDateString());
+        // Store resolution comes from the parse response: existing match → id,
+        // otherwise keep the proposed name (BE creates the store on confirm).
+        setStoreId(result.storeId ?? null);
+        setSuggestedStoreName(result.storeId ? null : (result.suggestedStoreName ?? null));
         if (result.items && result.parseConfidence !== 'failed') {
           setItems(
             result.items.map((pi: ParsedItem) => ({
@@ -770,29 +775,15 @@ export default function ReceiptUploadPage() {
       });
   }, [photos]);
 
-  // ── Post-parse store resolution (mobile parity) ─────────────────────────────
-  // Match parsed storeName against loaded stores case-insensitively; when there
-  // is no match — create the store and select it. Runs as an effect (not inside
-  // the parse closure) so it never reads a stale `stores` list: it waits for
-  // useStores to finish loading and re-runs when stores arrive.
-  useEffect(() => {
-    const current = parseResult;
-    const storeName = current?.storeName;
-    if (!current || !storeName || storesLoading) return;
-    if (storeResolvedForRef.current === current) return;
-    storeResolvedForRef.current = current;
-
-    const existing = stores.find((s) => s.name.toLowerCase() === storeName.toLowerCase());
-    if (existing) {
-      setStoreId(existing.id);
-      return;
-    }
-    void createStore(storeName).then(({ store }) => {
-      // Apply only while this parse result is still the active one
-      // (the wizard may have been reset in the meantime).
-      if (store && storeResolvedForRef.current === current) setStoreId(store.id);
-    });
-  }, [parseResult, stores, storesLoading, createStore]);
+  /**
+   * Store select handler: picking an existing store clears the new-store
+   * proposal; clearing the selection restores the parse suggestion (if any).
+   */
+  const handleStoreChange = (id: string | null) => {
+    setStoreId(id);
+    if (id) setSuggestedStoreName(null);
+    else setSuggestedStoreName(parseResult?.storeId ? null : (parseResult?.suggestedStoreName ?? null));
+  };
 
   // ── Step 3 submit ────────────────────────────────────────────────────────────
 
@@ -803,6 +794,9 @@ export default function ReceiptUploadPage() {
     try {
       const receipt = await receiptsApi.create({
         storeId: storeId,
+        // Existing store wins; otherwise pass the new-store proposal —
+        // the BE resolves/creates it inside the confirm transaction.
+        suggestedStoreName: storeId ? null : (suggestedStoreName ?? null),
         paymentMethodId: paymentMethodId,
         transactionCategoryId: transactionCategoryId,
         receiptDate: receiptDate || todayDateString(),
@@ -835,10 +829,10 @@ export default function ReceiptUploadPage() {
     setParseResult(null);
     setParseError(null);
     setStoreId(null);
+    setSuggestedStoreName(null);
     setPaymentMethodId(null);
     setTransactionCategoryId(null);
     setReceiptDate(todayDateString());
-    storeResolvedForRef.current = null;
     parseRunRef.current++;
     setItems([]);
     setConfirmCancel(false);
@@ -1143,16 +1137,36 @@ export default function ReceiptUploadPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="mb-1 block text-[12px] text-gray-500">Магазин</label>
+                    <div className="mb-1 flex items-center gap-2">
+                      <label className="text-[12px] text-gray-500">Магазин</label>
+                      {!storeId && suggestedStoreName && (
+                        <span
+                          className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                          style={{ backgroundColor: '#EAF3DE', color: '#27500A' }}
+                        >
+                          нова: {suggestedStoreName}
+                        </span>
+                      )}
+                    </div>
                     <SearchableStoreSelect
                       value={storeId}
-                      onChange={setStoreId}
+                      onChange={handleStoreChange}
                       stores={stores}
                       onCreate={async (name) => {
                         const { store } = await createStore(name);
                         return store ?? null;
                       }}
+                      placeholder={
+                        !storeId && suggestedStoreName
+                          ? `Буде створено «${suggestedStoreName}»`
+                          : undefined
+                      }
                     />
+                    {!storeId && suggestedStoreName && (
+                      <p className="mt-1 text-[11px] text-[#9ca3af]">
+                        Буде створено «{suggestedStoreName}» при збереженні, або оберіть існуючий.
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="mb-1 block text-[12px] text-gray-500">Метод оплати</label>

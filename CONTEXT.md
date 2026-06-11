@@ -5,6 +5,17 @@
 
 ---
 
+## Оновлено: 2026-06-11 — Store: без еагерного створення (резолв на parse, створення на confirm)
+
+### Зміни
+- Types (`types/receipt.types.ts`): `ParsedReceiptDto` +`storeId: string|null` (резолв існуючого магазину на BE), `suggestedStoreName: string|null` (пропозиція нового), `storeIsNew: boolean`; `CreateReceiptDto`/`UpdateReceiptDto` +`suggestedStoreName?: string|null` (використовується ЛИШЕ коли `storeId` порожній — BE знаходить/створює магазин у транзакції confirm).
+- `app/receipts/upload/page.tsx`: **видалено** effect авто-створення магазину після parse (`storeResolvedForRef` + `useEffect` з `createStore`) і `storesLoading`. Замість нього у parse `.then`: `setStoreId(result.storeId ?? null)` + стейт `suggestedStoreName` (тільки коли storeId порожній). На confirm: `suggestedStoreName: storeId ? null : (suggestedStoreName ?? null)`. `resetWizard` очищає новий стейт; stale-parse guard `parseRunRef` без змін.
+- Поле «Магазин» (Step 3): бейдж «нова: {name}» біля label (стиль як категорійний у ItemSubModal: `#EAF3DE`/`#27500A`) + placeholder «Буде створено «{name}»» + хелпер-текст. `handleStoreChange`: вибір існуючого очищає пропозицію; очищення селекта (X) відновлює пропозицію з `parseResult`. Inline-create у SearchableStoreSelect лишається (явна дія).
+- `app/receipts/upload/qr/page.tsx`: клієнтський auto-select існуючого магазину за назвою замінено на префіл `storeId`/`suggestedStoreName` з відповіді parse; той самий бейдж/placeholder/хелпер біля «Магазин» (поряд з DpsBadge); `suggestedStoreName` на confirm; `reset` очищає стейт.
+- Manual-флоу і `/receipts` EditModal не чіпались. Хуки/api-шар без змін (тільки типи). `tsc --noEmit` чистий.
+
+---
+
 ## Оновлено: 2026-06-11 — Web upload: mobile-style flow (спінер → форма)
 
 ### Зміни (тільки `app/receipts/upload/page.tsx`, FE-only)

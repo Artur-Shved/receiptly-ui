@@ -401,6 +401,9 @@ export default function QrUploadPage() {
 
   // Preview meta
   const [storeId, setStoreId] = useState<string | null>(null);
+  // Parse-proposed new store name; kept only while no existing store is selected.
+  // The store itself is created by the BE on confirm (no eager creation).
+  const [suggestedStoreName, setSuggestedStoreName] = useState<string | null>(null);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [transactionCategoryId, setTransactionCategoryId] = useState<string | null>(null);
   const [showFieldErrors, setShowFieldErrors] = useState(false);
@@ -462,13 +465,10 @@ export default function QrUploadPage() {
         })),
       );
 
-      // Try to auto-select an existing store from the parsed name
-      if (result.storeName) {
-        const match = stores.find(
-          (s) => s.name.toLowerCase() === result.storeName!.toLowerCase(),
-        );
-        if (match) setStoreId(match.id);
-      }
+      // Store resolution comes from the parse response: existing match → id,
+      // otherwise keep the proposed name (BE creates the store on confirm).
+      setStoreId(result.storeId ?? null);
+      setSuggestedStoreName(result.storeId ? null : (result.suggestedStoreName ?? null));
 
       setStep('preview');
     } catch (err) {
@@ -486,6 +486,16 @@ export default function QrUploadPage() {
     }
   };
 
+  /**
+   * Store select handler: picking an existing store clears the new-store
+   * proposal; clearing the selection restores the parse suggestion (if any).
+   */
+  const handleStoreChange = (id: string | null) => {
+    setStoreId(id);
+    if (id) setSuggestedStoreName(null);
+    else setSuggestedStoreName(parseResult?.storeId ? null : (parseResult?.suggestedStoreName ?? null));
+  };
+
   // ── Preview submit ───────────────────────────────────────────────────────
 
   const handleConfirm = async () => {
@@ -499,6 +509,9 @@ export default function QrUploadPage() {
     try {
       await receiptsApi.create({
         storeId,
+        // Existing store wins; otherwise pass the new-store proposal —
+        // the BE resolves/creates it inside the confirm transaction.
+        suggestedStoreName: storeId ? null : (suggestedStoreName ?? null),
         paymentMethodId,
         transactionCategoryId,
         receiptDate: parseResult?.receiptDate ?? todayDateString(),
@@ -529,6 +542,7 @@ export default function QrUploadPage() {
     setStageErrorIdx(null);
     setErrorCode(null);
     setStoreId(null);
+    setSuggestedStoreName(null);
     setPaymentMethodId(null);
     setTransactionCategoryId(null);
     setShowFieldErrors(false);
@@ -737,19 +751,38 @@ export default function QrUploadPage() {
 
               <div className="mb-4 grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1 block text-[12px] text-gray-500">
-                    Магазин <DpsBadge />
-                  </label>
+                  <div className="mb-1 flex items-center gap-2">
+                    <label className="text-[12px] text-gray-500">
+                      Магазин <DpsBadge />
+                    </label>
+                    {!storeId && suggestedStoreName && (
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                        style={{ backgroundColor: '#EAF3DE', color: '#27500A' }}
+                      >
+                        нова: {suggestedStoreName}
+                      </span>
+                    )}
+                  </div>
                   <SearchableStoreSelect
                     value={storeId}
-                    onChange={setStoreId}
+                    onChange={handleStoreChange}
                     stores={stores}
                     onCreate={async (name) => {
                       const { store } = await createStore(name);
                       return store ?? null;
                     }}
-                    placeholder={parseResult.storeName ?? 'Оберіть магазин'}
+                    placeholder={
+                      !storeId && suggestedStoreName
+                        ? `Буде створено «${suggestedStoreName}»`
+                        : 'Оберіть магазин'
+                    }
                   />
+                  {!storeId && suggestedStoreName && (
+                    <p className="mt-1 text-[11px] text-[#9ca3af]">
+                      Буде створено «{suggestedStoreName}» при збереженні, або оберіть існуючий.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="mb-1 block text-[12px] text-gray-500">

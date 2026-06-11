@@ -60,6 +60,11 @@ export interface CreateReceiptItemDto {
 
 export interface CreateReceiptDto {
   storeId?: string | null;
+  /**
+   * Parse-proposed new store name. Used ONLY when `storeId` is empty — the
+   * server resolves/creates the store by normalized name on confirm.
+   */
+  suggestedStoreName?: string | null;
   paymentMethodId?: string | null;
   transactionCategoryId?: string | null;
   receiptDate: string;
@@ -69,6 +74,8 @@ export interface CreateReceiptDto {
 
 export interface UpdateReceiptDto {
   storeId?: string | null;
+  /** Same semantics as in CreateReceiptDto. */
+  suggestedStoreName?: string | null;
   paymentMethodId?: string | null;
   transactionCategoryId?: string | null;
   receiptDate?: string;
@@ -118,7 +125,14 @@ export interface ParseMeta {
 }
 
 export interface ParsedReceiptDto {
+  /** Raw LLM/DPS store name — kept for display; resolution fields below win. */
   storeName: string | null;
+  /** Existing (user/system) store id resolved by normalized name, or null. */
+  storeId: string | null;
+  /** Proposed new store name when no existing one matched, or null. */
+  suggestedStoreName: string | null;
+  /** True when `suggestedStoreName` is set. */
+  storeIsNew: boolean;
   receiptDate: string | null;
   totalAmount: number | null;
   currency: string;
