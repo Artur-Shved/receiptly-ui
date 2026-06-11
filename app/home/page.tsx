@@ -195,7 +195,14 @@ export default function HomePage() {
         ) : (
           <div
             className="flex flex-wrap items-end justify-between gap-4"
-            style={{ background: 'var(--brand-gradient)', borderRadius: 16, padding: 24 }}
+            style={{
+              // Solid brand fallback under the gradient so white text stays
+              // readable even if the CSS variable hasn't loaded (stale dev CSS).
+              backgroundColor: '#0F6E56',
+              backgroundImage: 'var(--brand-gradient)',
+              borderRadius: 16,
+              padding: 24,
+            }}
           >
             <div>
               <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.75)' }}>
