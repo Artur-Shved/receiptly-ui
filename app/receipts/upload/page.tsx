@@ -528,7 +528,7 @@ function ItemsEditor({ items, itemCategories, onCreateCategory, currency, onChan
 // ─── Step indicator ───────────────────────────────────────────────────────────
 
 function StepIndicator({ current }: { current: number }) {
-  const steps = ['Фото', 'Деталі', 'Товари', 'Готово'];
+  const steps = ['Фото', 'Обробка', 'Перевірка', 'Готово'];
   return (
     <div className="mb-8 flex items-center justify-center gap-0">
       {steps.map((label, idx) => {
@@ -569,7 +569,7 @@ export default function ReceiptUploadPage() {
   const { logout } = useLogout();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const { stores, createStore } = useStores();
+  const { stores, isLoading: storesLoading, createStore } = useStores();
   const { methods, createMethod } = usePaymentMethods();
   const { categories: txCategories, createCategory: createTxCategory } = useTransactionCategories();
   const { categories: itemCategories, createCategory: createItemCategory } = useItemCategories();
@@ -587,11 +587,16 @@ export default function ReceiptUploadPage() {
   const [parseResult, setParseResult] = useState<ParsedReceiptDto | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
 
-  // Step 2 — meta form (all optional)
+  // Step 3 — meta form (all optional)
   const [storeId, setStoreId] = useState<string | null>(null);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [transactionCategoryId, setTransactionCategoryId] = useState<string | null>(null);
-  const [waitingForParse, setWaitingForParse] = useState(false);
+  const [receiptDate, setReceiptDate] = useState<string>(todayDateString());
+  // Guards the post-parse store resolution so it runs exactly once per parse result.
+  const storeResolvedForRef = useRef<ParsedReceiptDto | null>(null);
+  // Invalidates in-flight parse requests after a reset/re-run (stale .then
+  // would otherwise auto-advance the wizard to step 3 with old data).
+  const parseRunRef = useRef(0);
 
   // Step 3
   const [items, setItems] = useState<EditableItem[]>([]);
@@ -711,6 +716,7 @@ export default function ReceiptUploadPage() {
 
   const handleStep1Next = useCallback(() => {
     if (photos.length === 0) return;
+    const run = ++parseRunRef.current;
     setPhotos((prev) => prev.map((p) => ({ ...p, status: 'processing' })));
     setIsParsing(true);
     setParseError(null);
@@ -720,6 +726,9 @@ export default function ReceiptUploadPage() {
     receiptsApi
       .parse(photos.map((p) => p.file))
       .then((result) => {
+        // The wizard may have been reset (or re-run) while this request was
+        // in flight — applying a stale result would yank the user to step 3.
+        if (parseRunRef.current !== run) return;
         setParseResult(result);
         setIsParsing(false);
         const failed = new Set(result.meta?.failedIndices ?? []);
@@ -729,12 +738,7 @@ export default function ReceiptUploadPage() {
             status: failed.has(idx) ? 'error' : 'done',
           })),
         );
-        if (result.storeName) {
-          const match = stores.find(
-            (s) => s.name.toLowerCase() === result.storeName!.toLowerCase(),
-          );
-          if (match) setStoreId(match.id);
-        }
+        setReceiptDate(result.receiptDate?.slice(0, 10) ?? todayDateString());
         if (result.items && result.parseConfidence !== 'failed') {
           setItems(
             result.items.map((pi: ParsedItem) => ({
@@ -751,30 +755,44 @@ export default function ReceiptUploadPage() {
             })),
           );
         }
+        // Mobile-style flow: review step opens right after parsing finishes
+        // (success, partial, and all-failed — the latter renders the error state).
+        setStep(3);
       })
       .catch(() => {
+        if (parseRunRef.current !== run) return;
         setParseError('Не вдалось розпізнати чек');
         setIsParsing(false);
         setPhotos((prev) => prev.map((p) => ({ ...p, status: 'error' })));
+        // Don't leave the user stuck on the processing step — step 3 shows
+        // the full error state with retry / manual / cancel options.
+        setStep(3);
       });
-  }, [photos, stores]);
+  }, [photos]);
 
-  // ── Step 2 "Далі" ───────────────────────────────────────────────────────────
+  // ── Post-parse store resolution (mobile parity) ─────────────────────────────
+  // Match parsed storeName against loaded stores case-insensitively; when there
+  // is no match — create the store and select it. Runs as an effect (not inside
+  // the parse closure) so it never reads a stale `stores` list: it waits for
+  // useStores to finish loading and re-runs when stores arrive.
+  useEffect(() => {
+    const current = parseResult;
+    const storeName = current?.storeName;
+    if (!current || !storeName || storesLoading) return;
+    if (storeResolvedForRef.current === current) return;
+    storeResolvedForRef.current = current;
 
-  const handleStep2Next = () => {
-    if (isParsing) {
-      setWaitingForParse(true);
+    const existing = stores.find((s) => s.name.toLowerCase() === storeName.toLowerCase());
+    if (existing) {
+      setStoreId(existing.id);
       return;
     }
-    setStep(3);
-  };
-
-  useEffect(() => {
-    if (waitingForParse && !isParsing) {
-      setWaitingForParse(false);
-      setStep(3);
-    }
-  }, [waitingForParse, isParsing]);
+    void createStore(storeName).then(({ store }) => {
+      // Apply only while this parse result is still the active one
+      // (the wizard may have been reset in the meantime).
+      if (store && storeResolvedForRef.current === current) setStoreId(store.id);
+    });
+  }, [parseResult, stores, storesLoading, createStore]);
 
   // ── Step 3 submit ────────────────────────────────────────────────────────────
 
@@ -787,7 +805,7 @@ export default function ReceiptUploadPage() {
         storeId: storeId,
         paymentMethodId: paymentMethodId,
         transactionCategoryId: transactionCategoryId,
-        receiptDate: parseResult?.receiptDate ?? todayDateString(),
+        receiptDate: receiptDate || todayDateString(),
         currency: parsedCurrency,
         items: items.map(({ _key: _k, photoIndex: _p, ...rest }) => ({
           ...rest,
@@ -819,6 +837,9 @@ export default function ReceiptUploadPage() {
     setStoreId(null);
     setPaymentMethodId(null);
     setTransactionCategoryId(null);
+    setReceiptDate(todayDateString());
+    storeResolvedForRef.current = null;
+    parseRunRef.current++;
     setItems([]);
     setConfirmCancel(false);
     setConfirmError(null);
@@ -973,113 +994,154 @@ export default function ReceiptUploadPage() {
             </div>
           )}
 
-          {/* ── Step 2: Progress + Metadata ─────────────────────────────────── */}
+          {/* ── Step 2: Processing (mobile-style: spinner only, auto-advance) ─ */}
           {step === 2 && (
-            <div className="flex gap-6">
-              {/* Left: progress card */}
-              <div style={{ flex: 1 }}>
-                <div className="rounded-xl p-4" style={{ border: '0.5px solid #e5e7eb', backgroundColor: '#F7F7F7' }}>
-                  <div className="mb-3 flex items-center gap-2">
-                    {isParsing ? (
-                      <span className="relative flex h-3 w-3">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#1a1a1a] opacity-50" />
-                        <span className="relative inline-flex h-3 w-3 rounded-full bg-[#1a1a1a]" />
-                      </span>
-                    ) : (
-                      <Check size={14} color="#3B6D11" />
-                    )}
-                    <span className="text-[13px] font-medium text-[#1a1a1a]">
-                      {isParsing
-                        ? `Обробка фото (${photos.filter((p) => p.status === 'processing').length} з ${photos.length})...`
-                        : 'Обробку завершено'}
+            <div className="mx-auto w-full max-w-xl">
+              <div className="rounded-xl bg-white p-5" style={{ border: '0.5px solid #e5e7eb' }}>
+                <div className="mb-1 flex items-center justify-center gap-2">
+                  {isParsing ? (
+                    <span className="relative flex h-3 w-3">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#1a1a1a] opacity-50" />
+                      <span className="relative inline-flex h-3 w-3 rounded-full bg-[#1a1a1a]" />
                     </span>
-                  </div>
-                  <div className="mb-4 h-[3px] w-full overflow-hidden rounded-full bg-[#e5e7eb]">
-                    <div
-                      className="h-full transition-all"
-                      style={{
-                        width: `${
-                          photos.length === 0
-                            ? 0
-                            : (photos.filter((p) => p.status === 'done' || p.status === 'error').length / photos.length) * 100
-                        }%`,
-                        backgroundColor: '#1a1a1a',
-                      }}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    {photos.map((p, idx) => (
-                      <div key={p.id} className="flex items-center gap-2.5">
-                        <span
-                          className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-medium"
-                          style={{ backgroundColor: '#1a1a1a', color: '#fff' }}
-                        >
-                          {idx + 1}
-                        </span>
-                        <span className="flex-1 text-[12px] text-[#6b7280]">Фото {idx + 1}</span>
-                        <span className="flex items-center gap-1.5">
-                          <span
-                            className="h-2 w-2 rounded-full"
-                            style={{
-                              backgroundColor:
-                                p.status === 'done'
-                                  ? '#3B6D11'
-                                  : p.status === 'error'
-                                    ? '#A32D2D'
-                                    : p.status === 'processing'
-                                      ? '#F59E0B'
-                                      : '#9ca3af',
-                              animation: p.status === 'processing' ? 'pulse 1.2s ease-in-out infinite' : undefined,
-                            }}
-                          />
-                          <span
-                            className="text-[12px]"
-                            style={{
-                              color:
-                                p.status === 'done'
-                                  ? '#3B6D11'
-                                  : p.status === 'error'
-                                    ? '#A32D2D'
-                                    : '#6b7280',
-                            }}
-                          >
-                            {p.status === 'done'
-                              ? 'Розпізнано'
-                              : p.status === 'error'
-                                ? 'Помилка'
-                                : p.status === 'processing'
-                                  ? 'Обробляється...'
-                                  : 'Очікує'}
-                          </span>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                  ) : (
+                    <Check size={14} color="#3B6D11" />
+                  )}
+                  <span className="text-[15px] font-medium text-[#1a1a1a]">
+                    {isParsing ? 'Розпізнаємо чек...' : 'Обробку завершено'}
+                  </span>
+                </div>
+                <p className="mb-4 text-center text-[12px] text-[#9ca3af]">
+                  зазвичай 5–15 секунд
+                </p>
+                <div className="mb-4 h-[3px] w-full overflow-hidden rounded-full bg-[#e5e7eb]">
+                  <div
+                    className="h-full transition-all"
+                    style={{
+                      width: `${
+                        photos.length === 0
+                          ? 0
+                          : (photos.filter((p) => p.status === 'done' || p.status === 'error').length / photos.length) * 100
+                      }%`,
+                      backgroundColor: '#1a1a1a',
+                    }}
+                  />
                 </div>
 
-                {parseError && parseResult?.parseConfidence !== 'failed' && (
-                  <div className="mt-3 rounded-md bg-[#FCEBEB] px-3 py-2 text-center text-[13px] text-[#A32D2D]">
-                    {parseError}
-                  </div>
-                )}
+                <div className="space-y-2">
+                  {photos.map((p, idx) => (
+                    <div key={p.id} className="flex items-center gap-2.5">
+                      <span
+                        className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-medium"
+                        style={{ backgroundColor: '#1a1a1a', color: '#fff' }}
+                      >
+                        {idx + 1}
+                      </span>
+                      <span className="flex-1 text-[12px] text-[#6b7280]">Фото {idx + 1}</span>
+                      <span className="flex items-center gap-1.5">
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{
+                            backgroundColor:
+                              p.status === 'done'
+                                ? '#3B6D11'
+                                : p.status === 'error'
+                                  ? '#A32D2D'
+                                  : p.status === 'processing'
+                                    ? '#F59E0B'
+                                    : '#9ca3af',
+                            animation: p.status === 'processing' ? 'pulse 1.2s ease-in-out infinite' : undefined,
+                          }}
+                        />
+                        <span
+                          className="text-[12px]"
+                          style={{
+                            color:
+                              p.status === 'done'
+                                ? '#3B6D11'
+                                : p.status === 'error'
+                                  ? '#A32D2D'
+                                  : '#6b7280',
+                          }}
+                        >
+                          {p.status === 'done'
+                            ? 'Розпізнано'
+                            : p.status === 'error'
+                              ? 'Помилка'
+                              : p.status === 'processing'
+                                ? 'Обробляється...'
+                                : 'Очікує'}
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
+              <div className="mt-4 flex justify-center">
                 <Button
                   variant="secondary"
                   fullWidth={false}
-                  className="mt-4 py-2 px-4 text-[13px]"
+                  className="py-2 px-4 text-[13px]"
                   onClick={resetWizard}
                 >
                   Змінити фото
                 </Button>
               </div>
+            </div>
+          )}
 
-              {/* Right: form */}
-              <div style={{ width: 300, flexShrink: 0 }}>
-                <h2 className="mb-1 text-[16px] font-medium">Деталі чеку</h2>
-                <p className="mb-4 text-[12px] text-[#9ca3af]">Усі поля опціональні</p>
-
-                <div className="space-y-3">
+          {/* ── Step 3: Preview items ──────────────────────────────────────── */}
+          {step === 3 && (
+            <div>
+              {/* All-failed: full error state (LLM failed, all photos failed, or the parse request itself failed) */}
+              {(parseResult?.parseConfidence === 'failed' ||
+                (parseError && !parseResult) ||
+                (parseError && parseResult?.meta?.photosSucceeded === 0)) ? (
+                <div className="mx-auto flex max-w-md flex-col items-center rounded-xl bg-white p-8 text-center" style={{ border: '0.5px solid #e5e7eb' }}>
+                  <div className="mb-4 flex h-[52px] w-[52px] items-center justify-center rounded-full" style={{ backgroundColor: '#FCEBEB', color: '#A32D2D' }}>
+                    <ScanEye size={24} />
+                  </div>
+                  <p className="mb-2 text-[15px] font-medium text-[#1a1a1a]">Не вдалось розпізнати чек</p>
+                  <p className="mb-6 text-[13px] leading-[1.5] text-[#6b7280]">
+                    {parseResult?.meta
+                      ? `Жодне з ${parseResult.meta.photosTotal} фото не вдалось розпізнати.`
+                      : 'Спробуйте зробити чіткіші знімки або введіть дані вручну.'}
+                  </p>
+                  <Button
+                    fullWidth
+                    icon={<RefreshCw size={14} />}
+                    className="mb-2 py-2 text-[13px]"
+                    onClick={handleStep1Next}
+                  >
+                    Спробувати ще раз
+                  </Button>
+                  <Button
+                    fullWidth
+                    variant="secondary"
+                    icon={<Pencil size={14} />}
+                    className="py-2 text-[13px]"
+                    onClick={() => router.push('/receipts/upload/manual')}
+                  >
+                    Ввести вручну
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/receipts')}
+                    className="mt-4 text-[12px] text-[#9ca3af] hover:underline"
+                  >
+                    Скасувати
+                  </button>
+                </div>
+              ) : (
+              <>
+              {/* Meta fields (all optional) — shown after parsing, mobile-style */}
+              <div className="mb-4 rounded-xl bg-white p-4" style={{ border: '0.5px solid #e5e7eb' }}>
+                <div className="mb-3 flex items-baseline justify-between">
+                  <h2 className="text-[15px] font-medium text-[#1a1a1a]">Деталі чеку</h2>
+                  <span className="text-[12px] text-[#9ca3af]">Усі поля опціональні</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="mb-1 block text-[12px] text-gray-500">Магазин</label>
                     <SearchableStoreSelect
@@ -1120,62 +1182,18 @@ export default function ReceiptUploadPage() {
                       createOptionLabel={(q) => `Додати «${q}» як нову категорію`}
                     />
                   </div>
-                </div>
-
-                <Button
-                  fullWidth={false}
-                  isLoading={waitingForParse}
-                  className="mt-6 w-full py-2 text-[13px]"
-                  onClick={handleStep2Next}
-                >
-                  {waitingForParse ? 'Розпізнаємо чек...' : 'Далі →'}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* ── Step 3: Preview items ──────────────────────────────────────── */}
-          {step === 3 && (
-            <div>
-              {/* All-failed: full error state */}
-              {(parseResult?.parseConfidence === 'failed' || (parseError && parseResult?.meta?.photosSucceeded === 0)) ? (
-                <div className="mx-auto flex max-w-md flex-col items-center rounded-xl bg-white p-8 text-center" style={{ border: '0.5px solid #e5e7eb' }}>
-                  <div className="mb-4 flex h-[52px] w-[52px] items-center justify-center rounded-full" style={{ backgroundColor: '#FCEBEB', color: '#A32D2D' }}>
-                    <ScanEye size={24} />
+                  <div>
+                    <label className="mb-1 block text-[12px] text-gray-500">Дата покупки</label>
+                    <input
+                      type="date"
+                      value={receiptDate}
+                      onChange={(e) => setReceiptDate(e.target.value)}
+                      className="h-[38px] w-full rounded-lg border border-[#e5e7eb] bg-white px-3 text-[13px] outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
+                    />
                   </div>
-                  <p className="mb-2 text-[15px] font-medium text-[#1a1a1a]">Не вдалось розпізнати чек</p>
-                  <p className="mb-6 text-[13px] leading-[1.5] text-[#6b7280]">
-                    {parseResult?.meta
-                      ? `Жодне з ${parseResult.meta.photosTotal} фото не вдалось розпізнати.`
-                      : 'Спробуйте зробити чіткіші знімки або введіть дані вручну.'}
-                  </p>
-                  <Button
-                    fullWidth
-                    icon={<RefreshCw size={14} />}
-                    className="mb-2 py-2 text-[13px]"
-                    onClick={handleStep1Next}
-                  >
-                    Спробувати ще раз
-                  </Button>
-                  <Button
-                    fullWidth
-                    variant="secondary"
-                    icon={<Pencil size={14} />}
-                    className="py-2 text-[13px]"
-                    onClick={() => router.push('/receipts/upload/manual')}
-                  >
-                    Ввести вручну
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={() => router.push('/receipts')}
-                    className="mt-4 text-[12px] text-[#9ca3af] hover:underline"
-                  >
-                    Скасувати
-                  </button>
                 </div>
-              ) : (
-              <>
+              </div>
+
               {/* Partial: some photos failed */}
               {parseResult?.meta && parseResult.meta.photosFailed > 0 && parseResult.meta.photosSucceeded > 0 && (
                 <div

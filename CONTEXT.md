@@ -5,6 +5,19 @@
 
 ---
 
+## Оновлено: 2026-06-11 — Web upload: mobile-style flow (спінер → форма)
+
+### Зміни (тільки `app/receipts/upload/page.tsx`, FE-only)
+- **Step 2 «Обробка»** — тепер лише центрований progress card (спінер + «Розпізнаємо чек...» + hint «зазвичай 5–15 секунд» + progress bar + per-photo статуси) і кнопка «Змінити фото». Праву колонку з мета-формою прибрано. Кнопки «Далі» немає — автоперехід на Step 3 одразу після завершення parse (`setStep(3)` у `.then` і `.catch`). Стан `waitingForParse` і `handleStep2Next` видалено.
+- **Step 3 «Перевірка»** — над списком товарів додано картку «Деталі чеку» (grid 2×2, всі поля опціональні): Магазин (SearchableStoreSelect з inline-create), Метод оплати + Категорія транзакції (SearchableEntitySelect з inline-create), НОВЕ поле «Дата покупки» (`input type="date"`, стейт `receiptDate`, префіл з `parseResult.receiptDate?.slice(0,10) ?? today`, редаговане; на confirm передається значення поля). Items table / banners / total / sum-mismatch / ItemSubModal — без змін.
+- **Резолв магазину** — як у mobile photo.tsx: окремий `useEffect` по `[parseResult, stores, storesLoading]` (без stale closure): case-insensitive збіг → вибрати існуючий; немає збігу і storeName непорожній → `createStore(storeName)` і автоселект. Guard-ref (`storeResolvedForRef`, keyed на об'єкт parseResult) гарантує рівно 1 резолв на parse; reset wizard очищає ref.
+- **StepIndicator** — лейбли `['Фото', 'Обробка', 'Перевірка', 'Готово']`.
+- **Error handling** — all-failed умова на Step 3 розширена: `parseConfidence==='failed'` || `parseError && !parseResult` (HTTP-фейл запиту) || `photosSucceeded===0` → повноекранний error state (Спробувати ще раз / Ввести вручну / Скасувати). «Спробувати ще раз» = `handleStep1Next` → знову Step 2 «Обробка» → Step 3. Користувач не застрягає на Step 2.
+- **Stale-parse guard** — `parseRunRef` (generation counter): «Змінити фото» під час парсингу інвалідує in-flight запит, щоб його пізній `.then` не висмикнув користувача на Step 3 зі застарілим результатом.
+- QR-флоу і manual не чіпались. Нових залежностей немає. `tsc --noEmit` чистий.
+
+---
+
 ## Оновлено: 2026-06-04 — Авто-категоризація товарів при парсингу
 
 ### Зміни
