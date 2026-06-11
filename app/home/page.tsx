@@ -285,8 +285,8 @@ export default function HomePage() {
           <div className="overflow-hidden rounded-xl border border-[#e5e7eb] bg-white">
             {/* Table header */}
             <div
-              className="grid text-[11px] uppercase tracking-wide text-[#9ca3af]"
-              style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr', backgroundColor: '#F7F7F7', padding: '10px 16px' }}
+              className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
+              style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr', backgroundColor: 'var(--brand-soft, #E1F5EE)', padding: '10px 16px' }}
             >
               <span>Магазин</span>
               <span>Категорія</span>

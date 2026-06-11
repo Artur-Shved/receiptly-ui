@@ -848,8 +848,8 @@ export default function ReceiptsPage() {
             <div className="card-surface overflow-hidden rounded-[14px]">
               {/* Header */}
               <div
-                className="grid text-[11px] uppercase tracking-wide text-[#9ca3af]"
-                style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr 80px', backgroundColor: '#F7F7F7', padding: '10px 16px' }}
+                className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
+                style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr 80px', backgroundColor: 'var(--brand-soft, #E1F5EE)', padding: '10px 16px' }}
               >
                 <span>Магазин</span>
                 <span>Категорія</span>

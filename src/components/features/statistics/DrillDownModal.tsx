@@ -130,14 +130,14 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
           {!isLoading && !error && (
             <>
               <div
-                className="grid text-[11px] uppercase tracking-wide text-[#9ca3af]"
+                className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
                 style={{
                   gridTemplateColumns:
                     kind === 'item-category'
                       ? '2fr 1.4fr 0.8fr 0.8fr'
                       : '1.4fr 1.4fr 0.8fr',
                   padding: '8px 16px',
-                  backgroundColor: '#F7F7F7',
+                  backgroundColor: 'var(--brand-soft, #E1F5EE)',
                 }}
               >
                 {header.cols.map((c, i) => (

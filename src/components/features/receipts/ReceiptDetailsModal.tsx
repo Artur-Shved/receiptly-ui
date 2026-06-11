@@ -106,8 +106,8 @@ export function ReceiptDetailsModal({ receipt, onClose, onEdit, onDelete }: Rece
           <p className="mb-3 text-[12px] uppercase tracking-wide text-[#9ca3af]">Товари</p>
           <div className="overflow-hidden rounded-lg border border-[#e5e7eb]">
             <div
-              className="grid text-[11px] uppercase tracking-wide text-[#9ca3af]"
-              style={{ gridTemplateColumns: '3fr 1fr 1fr 1fr 60px', padding: '8px 12px', backgroundColor: '#F7F7F7' }}
+              className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
+              style={{ gridTemplateColumns: '3fr 1fr 1fr 1fr 60px', padding: '8px 12px', backgroundColor: 'var(--brand-soft, #E1F5EE)' }}
             >
               <span>Назва</span><span>Кат.</span><span>К-сть</span><span>Ціна/од</span>
               <span className="text-right">Сума</span>
