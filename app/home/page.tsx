@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Camera, Pencil, QrCode, Receipt } from 'lucide-react';
+import { Camera, Pencil, Receipt, Upload } from 'lucide-react';
 import { TopNav } from '@/src/components/features/home/TopNav';
 import { Button } from '@/src/components/ui/Button';
 import { Skeleton } from '@/src/components/ui/Skeleton';
@@ -68,17 +68,10 @@ function CategoryBadge({ category }: { category: { id: string; name: string } | 
 const QUICK_ACTIONS = [
   {
     href: '/receipts/upload',
-    label: 'Сфотографувати',
-    Icon: Camera,
+    label: 'Завантажити фото',
+    Icon: Upload,
     iconBg: '#E1F5EE',
     iconColor: '#0F6E56',
-  },
-  {
-    href: '/receipts/upload/qr',
-    label: 'Сканувати QR',
-    Icon: QrCode,
-    iconBg: '#E6F1FB',
-    iconColor: '#185FA5',
   },
   {
     href: '/receipts/upload/manual',
@@ -223,7 +216,7 @@ export default function HomePage() {
         )}
 
         {/* Quick actions */}
-        <div className="mb-8 mt-4 grid grid-cols-3 gap-3">
+        <div className="mb-8 mt-4 grid grid-cols-2 gap-3">
           {QUICK_ACTIONS.map(({ href, label, Icon, iconBg, iconColor }) => (
             <Link
               key={href}

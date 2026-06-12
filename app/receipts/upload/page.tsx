@@ -969,7 +969,7 @@ export default function ReceiptUploadPage() {
                     <div className="flex-1">
                       <p className="text-[13px] text-[#1a1a1a]">Додати ще фото</p>
                       <p className="text-[12px] text-[#9ca3af]">
-                        Сфотографувати або вибрати з галереї
+                        Виберіть файли або перетягніть сюди
                       </p>
                     </div>
                     <span className="text-[12px] text-[#9ca3af]">

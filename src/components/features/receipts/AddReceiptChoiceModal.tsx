@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Camera, Pencil, QrCode, X, Info } from 'lucide-react';
+import { Pencil, Upload, X } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
@@ -56,7 +56,7 @@ export function AddReceiptChoiceModal({ onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="w-[640px] max-w-[calc(100%-32px)] rounded-xl bg-white shadow-xl"
+        className="w-[560px] max-w-[calc(100%-32px)] rounded-xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[#e5e7eb] p-5">
@@ -73,26 +73,16 @@ export function AddReceiptChoiceModal({ onClose }: Props) {
         <div className="p-5">
           <p className="mb-3 text-[13px] text-gray-500">Оберіть спосіб додавання</p>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <ChoiceCard
               onClick={() => handleNav('/receipts/upload')}
               borderColor="#1a1a1a"
               iconBg="#E1F5EE"
               iconColor="#0F6E56"
-              icon={<Camera size={20} />}
-              title="Сфотографувати"
-              sub="LLM розпізнає товари автоматично"
+              icon={<Upload size={20} />}
+              title="Завантажити фото"
+              sub="Фото або PDF чека — товари розпізнаються автоматично"
               ctaColor="#0F6E56"
-            />
-            <ChoiceCard
-              onClick={() => handleNav('/receipts/upload/qr')}
-              borderColor="#185FA5"
-              iconBg="#E6F1FB"
-              iconColor="#185FA5"
-              icon={<QrCode size={20} />}
-              title="Сканувати QR-код"
-              sub="Дані з реєстру ДПС автоматично"
-              ctaColor="#185FA5"
             />
             <ChoiceCard
               onClick={() => handleNav('/receipts/upload/manual')}
@@ -104,14 +94,6 @@ export function AddReceiptChoiceModal({ onClose }: Props) {
               sub="Без фото, товари вводяться самостійно"
               ctaColor="#6b7280"
             />
-          </div>
-
-          <div
-            className="mt-4 flex items-start gap-2 rounded-md px-3 py-[10px] text-[12px]"
-            style={{ backgroundColor: '#E6F1FB', color: '#0C447C' }}
-          >
-            <Info size={14} className="mt-0.5 flex-shrink-0" />
-            QR-код знаходиться внизу фіскального чеку — зазвичай квадратний штрих-код з підписом «Фіскальний чек»
           </div>
         </div>
       </div>
