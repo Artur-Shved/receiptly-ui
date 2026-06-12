@@ -68,7 +68,7 @@ function CategoryBadge({ category }: { category: { id: string; name: string } | 
 const QUICK_ACTIONS = [
   {
     href: '/receipts/upload',
-    label: 'Завантажити фото',
+    label: 'Завантажити чек',
     Icon: Upload,
     iconBg: '#E1F5EE',
     iconColor: '#0F6E56',

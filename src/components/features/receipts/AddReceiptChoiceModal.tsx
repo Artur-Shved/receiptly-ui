@@ -80,7 +80,7 @@ export function AddReceiptChoiceModal({ onClose }: Props) {
               iconBg="#E1F5EE"
               iconColor="#0F6E56"
               icon={<Upload size={20} />}
-              title="Завантажити фото"
+              title="Завантажити чек"
               sub="Фото або PDF чека — товари розпізнаються автоматично"
               ctaColor="#0F6E56"
             />
