@@ -145,8 +145,9 @@ export function TimelineChart({ data, isLoading }: Props) {
         {/* X-axis labels */}
         <div className="mt-1 flex justify-between text-[10px] text-[#9ca3af]">
           {data.points.map((p, idx) => {
-            // Show every Nth label to avoid clutter
-            const step = Math.max(1, Math.ceil(n / 8));
+            // Day granularity is capped at ~14 points by the BE, so every day
+            // fits — label them all. Longer series (week/month) thin out to ≤8.
+            const step = data.granularity === 'day' ? 1 : Math.max(1, Math.ceil(n / 8));
             const show = idx % step === 0 || idx === n - 1;
             return (
               <span key={p.period} style={{ width: `${100 / n}%` }} className="text-center">
