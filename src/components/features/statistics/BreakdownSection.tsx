@@ -2,7 +2,7 @@
 
 import { ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/src/components/ui/Skeleton';
-import { categoryColor, NO_CATEGORY_CHART_COLOR } from '@/src/lib/category-colors';
+import { chartColorScale } from '@/src/lib/category-colors';
 import type { BreakdownItem } from '@/src/types/statistics.types';
 
 interface Props {
@@ -22,12 +22,6 @@ function fmtMoney(n: number): string {
   return `${n.toLocaleString('uk-UA', { maximumFractionDigits: 0 })} ₴`;
 }
 
-/** Progress bar color: deterministic per entity id; NULL bucket → neutral. */
-export function barColor(id: string | null): string {
-  if (id === null || id === 'none') return NO_CATEGORY_CHART_COLOR;
-  return categoryColor(id).solid;
-}
-
 export function BreakdownSection({
   title,
   items,
@@ -39,6 +33,8 @@ export function BreakdownSection({
 }: Props) {
   const hasMore = items != null && items.length > maxRows;
   const visible = items?.slice(0, maxRows) ?? [];
+  // Scale over the FULL list so the top-5 view and the show-all view agree.
+  const barColor = chartColorScale((items ?? []).map((i) => i.id));
   const maxAmount = visible.length > 0 ? Math.max(...visible.map((i) => i.totalAmount)) : 0;
 
   return (

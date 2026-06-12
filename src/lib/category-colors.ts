@@ -53,3 +53,30 @@ export function categoryColor(id: string | null | undefined): CategoryColor {
   if (!id) return PALETTE[9];
   return PALETTE[hash(id) % PALETTE.length];
 }
+
+/**
+ * Collision-free chart colors for one displayed list (statistics donut,
+ * breakdown bars). Each id keeps its preferred hash color when free,
+ * otherwise takes the next free palette slot — so colors never repeat
+ * while there are ≤10 distinct ids (beyond that the palette cycles).
+ * `null`/`'none'` (no category) always maps to NO_CATEGORY_CHART_COLOR.
+ *
+ * Compute the scale over the FULL list (before top-N slicing) so the same
+ * id gets the same color in every view of that list.
+ */
+export function chartColorScale(
+  ids: ReadonlyArray<string | null | undefined>,
+): (id: string | null | undefined) => string {
+  const taken = new Set<number>();
+  const map = new Map<string, string>();
+  for (const raw of ids) {
+    if (!raw || raw === 'none' || map.has(raw)) continue;
+    if (taken.size >= PALETTE.length) taken.clear(); // palette exhausted — start a new round
+    let idx = hash(raw) % PALETTE.length;
+    while (taken.has(idx)) idx = (idx + 1) % PALETTE.length;
+    taken.add(idx);
+    map.set(raw, PALETTE[idx].solid);
+  }
+  return (id) =>
+    !id || id === 'none' ? NO_CATEGORY_CHART_COLOR : (map.get(id) ?? categoryColor(id).solid);
+}

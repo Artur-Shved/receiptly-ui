@@ -2,7 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Skeleton } from '@/src/components/ui/Skeleton';
-import { categoryColor, NO_CATEGORY_CHART_COLOR } from '@/src/lib/category-colors';
+import { chartColorScale } from '@/src/lib/category-colors';
 import type { BreakdownItem } from '@/src/types/statistics.types';
 
 interface Props {
@@ -10,11 +10,6 @@ interface Props {
   totalAmount: number;
   isLoading: boolean;
   onSegmentClick?: (item: BreakdownItem) => void;
-}
-
-function colorFor(item: BreakdownItem): string {
-  if (item.id === null || item.id === 'none') return NO_CATEGORY_CHART_COLOR;
-  return categoryColor(item.id).solid;
 }
 
 function fmtMoney(n: number): string {
@@ -42,9 +37,10 @@ export function DonutChart({ data, totalAmount, isLoading, onSegmentClick }: Pro
     );
   }
 
+  const colorOf = chartColorScale(data.map((d) => d.id));
   const chartData = data.map((d) => ({
     ...d,
-    color: colorFor(d),
+    color: colorOf(d.id),
   }));
 
   return (

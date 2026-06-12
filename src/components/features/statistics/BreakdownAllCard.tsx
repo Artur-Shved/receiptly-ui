@@ -1,7 +1,7 @@
 'use client';
 
 import { ArrowLeft } from 'lucide-react';
-import { barColor } from '@/src/components/features/statistics/BreakdownSection';
+import { chartColorScale } from '@/src/lib/category-colors';
 import type { BreakdownItem } from '@/src/types/statistics.types';
 
 interface Props {
@@ -29,6 +29,7 @@ export function BreakdownAllCard({
   onBack,
 }: Props) {
   const maxAmount = items.length > 0 ? Math.max(...items.map((i) => i.totalAmount)) : 0;
+  const barColor = chartColorScale(items.map((i) => i.id));
 
   return (
     <div className="card-surface overflow-hidden rounded-[14px]">
