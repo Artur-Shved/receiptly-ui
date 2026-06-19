@@ -12,7 +12,9 @@ import { ReceiptDetailsModal } from '@/src/components/features/receipts/ReceiptD
 import { useLogout } from '@/src/hooks/useAuth';
 import { authApi } from '@/src/api/auth.api';
 import { receiptsApi } from '@/src/api/receipts.api';
+import { statisticsApi } from '@/src/api/statistics.api';
 import type { Receipt as ReceiptType } from '@/src/types/receipt.types';
+import type { SummaryResponse } from '@/src/types/statistics.types';
 
 function getGreeting(now: Date): string {
   const hour = now.getHours();
@@ -136,7 +138,7 @@ export default function HomePage() {
     authApi.me().then((u) => setUserName(u.name)).catch(() => {});
   }, []);
 
-  const [receiptsTotal, setReceiptsTotal] = useState(0);
+  const [summary, setSummary] = useState<SummaryResponse | null>(null);
 
   useEffect(() => {
     const today = new Date();
@@ -148,22 +150,25 @@ export default function HomePage() {
 
     setReceiptsLoading(true);
     receiptsApi
-      .getAll(1, 20, { dateFrom, dateTo })
+      .getAll({ page: 1, limit: 20, dateFrom, dateTo })
       .then((res) => {
         setReceipts(res.data);
-        setReceiptsTotal(res.total);
         setReceiptsLoading(false);
       })
       .catch(() => { setReceiptsError(true); setReceiptsLoading(false); });
+
+    statisticsApi
+      .getSummary({ dateFrom, dateTo })
+      .then(setSummary)
+      .catch(() => {});
   }, []);
 
-  // Receipts are already scoped to the current month server-side.
   const monthlyStats = useMemo(
     () => ({
-      total: receipts.reduce((sum, r) => sum + Number(r.totalAmount ?? 0), 0),
-      count: receiptsTotal,
+      total: summary?.totalAmount ?? 0,
+      count: summary?.receiptsCount ?? 0,
     }),
-    [receipts, receiptsTotal],
+    [summary],
   );
 
   const recentReceipts = receipts.slice(0, 5);
@@ -183,7 +188,7 @@ export default function HomePage() {
         </div>
 
         {/* Hero card — spent this month (web-design-refresh §5) */}
-        {receiptsLoading ? (
+        {summary === null ? (
           <Skeleton className="h-[120px] w-full" style={{ borderRadius: 16 }} />
         ) : (
           <div
@@ -210,7 +215,7 @@ export default function HomePage() {
             </div>
             <p className="tnum text-[12px]" style={{ color: 'rgba(255,255,255,0.75)' }}>
               {monthlyStats.count} чеків · середній{' '}
-              {(monthlyStats.count > 0 ? monthlyStats.total / monthlyStats.count : 0).toFixed(2)} ₴
+              {(summary?.avgAmount ?? 0).toFixed(2)} ₴
             </p>
           </div>
         )}

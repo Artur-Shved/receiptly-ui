@@ -7,6 +7,19 @@ import type {
   ParsedReceiptDto,
 } from '@/src/types/receipt.types';
 
+/** Query params for the paginated receipts list (all optional). */
+export interface ReceiptListParams {
+  page?: number;
+  limit?: number;
+  /** Case-insensitive substring match on store name (server-side). */
+  storeName?: string;
+  /** Inclusive YYYY-MM-DD bounds on receipt date. */
+  dateFrom?: string;
+  dateTo?: string;
+  transactionCategoryIds?: string[];
+  storeIds?: string[];
+}
+
 export const receiptsApi = {
   parse: (files: File[]): Promise<ParsedReceiptDto> => {
     const form = new FormData();
@@ -18,14 +31,18 @@ export const receiptsApi = {
     form.append('image', file);
     return apiClient.post<ParsedReceiptDto>('/receipts/parse-from-qr-image', form);
   },
-  getAll: (
-    page = 1,
-    limit = 5,
-    params?: { dateFrom?: string; dateTo?: string },
-  ): Promise<ReceiptsListResponse> => {
-    const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
-    if (params?.dateFrom) qs.set('dateFrom', params.dateFrom);
-    if (params?.dateTo) qs.set('dateTo', params.dateTo);
+  getAll: (params: ReceiptListParams = {}): Promise<ReceiptsListResponse> => {
+    const qs = new URLSearchParams({
+      page: String(params.page ?? 1),
+      limit: String(params.limit ?? 5),
+    });
+    if (params.storeName) qs.set('storeName', params.storeName);
+    if (params.dateFrom) qs.set('dateFrom', params.dateFrom);
+    if (params.dateTo) qs.set('dateTo', params.dateTo);
+    if (params.transactionCategoryIds?.length)
+      qs.set('transactionCategoryIds', params.transactionCategoryIds.join(','));
+    if (params.storeIds?.length)
+      qs.set('storeIds', params.storeIds.join(','));
     return apiClient.get<ReceiptsListResponse>(`/receipts?${qs.toString()}`);
   },
   getOne: (id: string): Promise<Receipt> =>

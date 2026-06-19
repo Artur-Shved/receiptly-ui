@@ -63,6 +63,13 @@ function toDateInputValue(iso: string): string {
   return iso.slice(0, 10);
 }
 
+/** Convert a `YYYY-MM` month into inclusive YYYY-MM-DD date bounds. */
+function monthToDateRange(ym: string): { dateFrom: string; dateTo: string } {
+  const [y, m] = ym.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  return { dateFrom: `${ym}-01`, dateTo: `${ym}-${String(lastDay).padStart(2, '0')}` };
+}
+
 const UK_MONTHS_GENITIVE = [
   'січня', 'лютого', 'березня', 'квітня', 'травня', 'червня',
   'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня',
@@ -603,14 +610,30 @@ function FilterButton({ icon, label, active, open, onClick }: FilterButtonProps)
 export default function ReceiptsPage() {
   const { logout } = useLogout();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const { receipts, isLoading, error, hasMore, loadMore, updateReceipt, removeReceipt } = useReceipts();
   const { categories: txCategories } = useTransactionCategories();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterYearMonth, setFilterYearMonth] = useState<string | null>(null);
   const [filterCategoryId, setFilterCategoryId] = useState<string | null>(null);
   const [dateOpen, setDateOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
+
+  // Debounce store search so each keystroke doesn't trigger a request.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // Server-side filtering — pass the active filters to the hook so results
+  // span the whole dataset, not just the currently loaded page.
+  const dateRange = filterYearMonth ? monthToDateRange(filterYearMonth) : {};
+  const { receipts, isLoading, error, hasMore, loadMore, updateReceipt, removeReceipt } =
+    useReceipts({
+      storeName: debouncedSearch || undefined,
+      ...dateRange,
+      transactionCategoryIds: filterCategoryId ? [filterCategoryId] : undefined,
+    });
 
   const [detailsReceipt, setDetailsReceipt] = useState<ReceiptType | null>(null);
   const [editReceipt, setEditReceipt] = useState<ReceiptType | null>(null);
@@ -647,39 +670,47 @@ export default function ReceiptsPage() {
       .finally(() => window.history.replaceState(null, '', '/receipts'));
   }, []);
 
+  // Static list of the last 12 months — independent of loaded receipts so the
+  // date filter offers a full range even before data spanning those months is
+  // fetched (server applies the resulting date bounds).
   const availableMonths = useMemo(() => {
-    const set = new Set<string>();
-    receipts.forEach((r) => set.add(r.receiptDate.slice(0, 7)));
-    return Array.from(set).sort().reverse();
-  }, [receipts]);
+    const months: string[] = [];
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    return months;
+  }, []);
 
-  const filtered = useMemo(() => {
-    return receipts.filter((r) => {
-      if (searchQuery.trim() && !r.store?.name?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-      if (filterYearMonth && !r.receiptDate.startsWith(filterYearMonth)) return false;
-      if (filterCategoryId && r.transactionCategoryId !== filterCategoryId) return false;
-      return true;
-    });
-  }, [receipts, searchQuery, filterYearMonth, filterCategoryId]);
-
-  // Day groups, derived from the (already date-desc sorted) filtered array.
-  // Sequential grouping — append via "Завантажити ще" naturally extends the
-  // last group; nothing is stored in state.
+  // Day groups, derived from the (already date-desc sorted, server-filtered)
+  // receipts array. Sequential grouping — append via "Завантажити ще" naturally
+  // extends the last group; nothing is stored in state.
   const dayGroups = useMemo(() => {
     const groups: { key: string; label: string; receipts: ReceiptType[] }[] = [];
-    for (const r of filtered) {
+    for (const r of receipts) {
       const key = r.receiptDate.slice(0, 10);
       const last = groups[groups.length - 1];
       if (last && last.key === key) last.receipts.push(r);
       else groups.push({ key, label: formatGroupLabel(r.receiptDate), receipts: [r] });
     }
     return groups;
-  }, [filtered]);
+  }, [receipts]);
 
   const handleDelete = async (id: string) => {
     const result = await removeReceipt(id);
     if (!result.error) { setDetailsReceipt(null); setDeleteReceipt(null); }
     return result;
+  };
+
+  const hasActiveFilters =
+    debouncedSearch.trim() !== '' || filterYearMonth !== null || filterCategoryId !== null;
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setDebouncedSearch('');
+    setFilterYearMonth(null);
+    setFilterCategoryId(null);
   };
 
   const selectedMonthLabel = filterYearMonth ? formatMonthYear(filterYearMonth) : 'Будь-яка дата';
@@ -781,10 +812,10 @@ export default function ReceiptsPage() {
             </div>
 
             {/* Clear filters */}
-            {(filterYearMonth || filterCategoryId) && (
+            {hasActiveFilters && (
               <button
                 type="button"
-                onClick={() => { setFilterYearMonth(null); setFilterCategoryId(null); }}
+                onClick={clearFilters}
                 className="flex items-center gap-1 text-[12px] text-[#9ca3af] hover:text-[#1a1a1a]"
               >
                 <X size={12} />
@@ -824,8 +855,8 @@ export default function ReceiptsPage() {
             </div>
           )}
 
-          {/* Empty state */}
-          {!isLoading && !error && receipts.length === 0 && (
+          {/* Empty state — no receipts at all (no active filters) */}
+          {!isLoading && !error && receipts.length === 0 && !hasActiveFilters && (
             <div className="card-surface flex flex-col items-center rounded-[14px] py-16">
               <div
                 className="mb-4 flex h-[52px] w-[52px] items-center justify-center rounded-full"
@@ -844,7 +875,7 @@ export default function ReceiptsPage() {
           )}
 
           {/* Table */}
-          {!error && filtered.length > 0 && (
+          {!error && receipts.length > 0 && (
             <div className="card-surface overflow-hidden rounded-[14px]">
               {/* Header */}
               <div
@@ -930,10 +961,10 @@ export default function ReceiptsPage() {
           )}
 
           {/* No results after filter */}
-          {!error && receipts.length > 0 && filtered.length === 0 && (
+          {!isLoading && !error && receipts.length === 0 && hasActiveFilters && (
             <div className="flex flex-col items-center rounded-xl border border-[#e5e7eb] bg-white py-12">
               <p className="text-[14px] text-[#9ca3af]">Нічого не знайдено</p>
-              <button type="button" onClick={() => { setSearchQuery(''); setFilterYearMonth(null); setFilterCategoryId(null); }} className="mt-3 text-[13px] text-[#1a1a1a] underline hover:opacity-70">
+              <button type="button" onClick={clearFilters} className="mt-3 text-[13px] text-[#1a1a1a] underline hover:opacity-70">
                 Скинути фільтри
               </button>
             </div>
@@ -947,7 +978,7 @@ export default function ReceiptsPage() {
               </Button>
             </div>
           )}
-          {!hasMore && filtered.length > 0 && !isLoading && (
+          {!hasMore && receipts.length > 0 && !isLoading && (
             <p className="mt-4 text-center text-[13px] text-[#9ca3af]">Це всі ваші чеки</p>
           )}
         </div>
