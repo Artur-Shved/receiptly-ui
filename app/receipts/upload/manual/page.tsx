@@ -444,7 +444,6 @@ export default function ManualReceiptPage() {
   };
 
   const handleConfirm = () => {
-    if (items.length === 0) return;
     if (totalMismatch) {
       setShowSumMismatch(true);
       return;
@@ -714,7 +713,6 @@ export default function ManualReceiptPage() {
                 <Button
                   fullWidth={false}
                   isLoading={isSubmitting}
-                  disabled={items.length === 0}
                   icon={<Check size={15} />}
                   className="py-2 px-6 text-[13px]"
                   onClick={handleConfirm}

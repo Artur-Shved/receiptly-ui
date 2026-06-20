@@ -526,7 +526,6 @@ export default function QrUploadPage() {
       setShowFieldErrors(true);
       return;
     }
-    if (items.length === 0) return;
     setIsSubmitting(true);
     setSubmitError(null);
     try {
@@ -962,7 +961,6 @@ export default function QrUploadPage() {
                 <Button
                   fullWidth={false}
                   isLoading={isSubmitting}
-                  disabled={items.length === 0}
                   icon={<Check size={14} />}
                   className="py-2 px-6 text-[13px]"
                   onClick={handleConfirm}

@@ -826,7 +826,6 @@ export default function ReceiptUploadPage() {
   // ── Step 3 submit ────────────────────────────────────────────────────────────
 
   const handleConfirm = async () => {
-    if (items.length === 0) return;
     setIsSubmitting(true);
     setConfirmError(null);
     try {
@@ -1412,7 +1411,6 @@ export default function ReceiptUploadPage() {
                 <Button
                   fullWidth={false}
                   isLoading={isSubmitting}
-                  disabled={items.length === 0}
                   icon={<CheckCircle2 size={15} />}
                   className="py-2 px-6 text-[13px]"
                   onClick={handleConfirm}

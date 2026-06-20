@@ -367,7 +367,6 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
   };
 
   const handleSubmit = async () => {
-    if (items.length === 0) return;
     setIsLoading(true); setError(null);
     const result = await onSave(receipt.id, {
       storeId,
@@ -494,7 +493,7 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
 
         <div className="flex flex-shrink-0 justify-end gap-2 border-t border-[#e5e7eb] p-5">
           <Button variant="secondary" fullWidth={false} onClick={onClose} className="py-2 px-4 text-[13px]">Скасувати</Button>
-          <Button fullWidth={false} isLoading={isLoading} disabled={items.length === 0} onClick={handleSubmit} className="py-2 px-4 text-[13px]">
+          <Button fullWidth={false} isLoading={isLoading} onClick={handleSubmit} className="py-2 px-4 text-[13px]">
             Зберегти зміни
           </Button>
         </div>
