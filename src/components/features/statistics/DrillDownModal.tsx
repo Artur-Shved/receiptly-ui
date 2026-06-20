@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { Button } from '@/src/components/ui/Button';
 import { Skeleton } from '@/src/components/ui/Skeleton';
 import { statisticsApi } from '@/src/api/statistics.api';
+import { chartColorScale } from '@/src/lib/category-colors';
 import { ApiError } from '@/src/types/api.types';
 import type {
   BreakdownItem,
@@ -43,10 +44,13 @@ const HEADERS: Record<DrillKind, { suffix: string; cols: string[] }> = {
   'payment-method': { suffix: 'чеків', cols: ['Магазин', 'Дата', 'Сума'] },
 };
 
+type LoadedReceipts = { mode: 'receipts'; items: ReceiptDrillDownItem[]; total: number };
+type LoadedItems = { mode: 'items'; items: ItemDrillDownItem[]; total: number };
+type LoadedBreakdown = { mode: 'breakdown'; items: BreakdownItem[]; totalAmount: number };
+type Loaded = LoadedReceipts | LoadedItems | LoadedBreakdown;
+
 export function DrillDownModal({ kind, item, filters, onClose }: Props) {
-  const [receipts, setReceipts] = useState<ReceiptDrillDownItem[] | null>(null);
-  const [items, setItems] = useState<ItemDrillDownItem[] | null>(null);
-  const [total, setTotal] = useState(0);
+  const [data, setData] = useState<Loaded | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,22 +59,34 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
     setError(null);
     const load = async () => {
       try {
-        if (kind === 'transaction-category') {
+        if (kind === 'store' && item.id != null) {
+          // Grouped breakdown: which transaction categories were spent at this store.
+          const res = await statisticsApi.getByTransactionCategory({
+            ...filters,
+            storeId: [item.id],
+            transactionCategoryId: undefined,
+          });
+          setData({ mode: 'breakdown', items: res.items, totalAmount: res.totalAmount });
+        } else if (kind === 'transaction-category' && item.id != null) {
+          // Grouped breakdown: which stores were used within this transaction category.
+          const res = await statisticsApi.getByStore({
+            ...filters,
+            transactionCategoryId: [item.id],
+            storeId: undefined,
+          });
+          setData({ mode: 'breakdown', items: res.items, totalAmount: res.totalAmount });
+        } else if (kind === 'transaction-category') {
           const res = await statisticsApi.getReceiptsByTransactionCategory(item.id, filters);
-          setReceipts(res.items);
-          setTotal(res.total);
+          setData({ mode: 'receipts', items: res.items, total: res.total });
         } else if (kind === 'store') {
           const res = await statisticsApi.getReceiptsByStore(item.id ?? '', filters);
-          setReceipts(res.items);
-          setTotal(res.total);
+          setData({ mode: 'receipts', items: res.items, total: res.total });
         } else if (kind === 'payment-method') {
           const res = await statisticsApi.getReceiptsByPaymentMethod(item.id, filters);
-          setReceipts(res.items);
-          setTotal(res.total);
+          setData({ mode: 'receipts', items: res.items, total: res.total });
         } else {
           const res = await statisticsApi.getItemsByItemCategory(item.id, filters);
-          setItems(res.items);
-          setTotal(res.total);
+          setData({ mode: 'items', items: res.items, total: res.total });
         }
       } catch (err) {
         setError(err instanceof ApiError ? err.message : 'Помилка завантаження');
@@ -82,8 +98,17 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
   }, [kind, item.id, filters]);
 
   const header = HEADERS[kind];
-  const shown =
-    kind === 'item-category' ? items?.length ?? 0 : receipts?.length ?? 0;
+  const receipts = data?.mode === 'receipts' ? data.items : null;
+  const items = data?.mode === 'items' ? data.items : null;
+  const breakdown = data?.mode === 'breakdown' ? data.items : null;
+  const total =
+    data?.mode === 'breakdown' ? data.items.length : data?.total ?? 0;
+  const shown = data?.items.length ?? 0;
+  const breakdownMax =
+    breakdown && breakdown.length > 0
+      ? Math.max(...breakdown.map((b) => b.totalAmount))
+      : 0;
+  const breakdownColor = chartColorScale((breakdown ?? []).map((b) => b.id));
 
   return (
     <div
@@ -127,7 +152,45 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
             </div>
           )}
 
-          {!isLoading && !error && (
+          {!isLoading && !error && breakdown && (
+            <>
+              {breakdown.map((b, idx) => {
+                const barPct =
+                  breakdownMax === 0 ? 0 : (b.totalAmount / breakdownMax) * 100;
+                return (
+                  <div
+                    key={`${b.id ?? 'none'}-${idx}`}
+                    className="border-b border-[#e5e7eb] px-4 py-3 last:border-b-0"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="truncate text-[13px] text-[#1a1a1a]">{b.name}</span>
+                      <span className="tnum text-[13px] font-medium text-[#1a1a1a]">
+                        {fmtMoney(b.totalAmount)} ₴
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-[3px] w-full overflow-hidden rounded-full bg-[#F0F0F0]">
+                      <div
+                        className="h-full"
+                        style={{ width: `${barPct}%`, backgroundColor: breakdownColor(b.id) }}
+                      />
+                    </div>
+                    <div className="mt-1 flex justify-between text-[11px] text-[#9ca3af]">
+                      <span>{b.count} {header.suffix}</span>
+                      <span className="tnum">{b.percentage.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {breakdown.length === 0 && (
+                <div className="px-4 py-8 text-center text-[13px] text-[#9ca3af]">
+                  Немає записів
+                </div>
+              )}
+            </>
+          )}
+
+          {!isLoading && !error && !breakdown && (
             <>
               <div
                 className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
@@ -211,7 +274,7 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
 
         <div className="flex flex-shrink-0 items-center justify-between border-t border-[#e5e7eb] p-4">
           <span className="text-[12px] text-[#9ca3af]">
-            Показано {shown} з {total}
+            {breakdown ? `${shown} записів` : `Показано ${shown} з ${total}`}
           </span>
           <Button
             fullWidth={false}
