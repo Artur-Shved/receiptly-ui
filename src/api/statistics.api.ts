@@ -21,6 +21,7 @@ function buildQuery(filters: StatisticsFilters): string {
   for (const id of filters.transactionCategoryId ?? [])
     params.append('transactionCategoryId', id);
   for (const id of filters.itemCategoryId ?? []) params.append('itemCategoryId', id);
+  for (const id of filters.paymentMethodId ?? []) params.append('paymentMethodId', id);
   return params.toString();
 }
 

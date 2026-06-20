@@ -64,7 +64,7 @@
 - **BreakdownSection** — top-5 рядки з progress bar + percentage; click → DrillDownModal
 - **FiltersModal** — split-panel мультивибір (620×560). Ліва панель (180px): 3 секції (Магазини/Кат. транзакцій/Кат. товарів) з кольоровою іконкою, preview перших 2 вибраних, бейджем кількості. Права панель: пошук + блок "Вибрані" зверху + пагінований список "Усі" (10/стор, "Ще N →"); empty-state. Props незмінні (initial/onApply/onClose)
 - **FiltersTags** — chip-row з активними фільтрами + "Фільтри (N)" кнопка
-- **DrillDownModal** — drill-down по кліку у breakdown-секції. Для `store`/`transaction-category` з ненульовим id показує **згруповану розбивку** (магазин → list кат. транзакцій через `getByTransactionCategory`; категорія → list магазинів через `getByStore`) у вигляді рядків з progress bar + count + %. Для NULL-bucket id та `payment-method`/`item-category` — табличний receipt/items view (fallback). Props незмінні (kind/item/filters/onClose)
+- **DrillDownModal** — drill-down по кліку у breakdown-секції. Для `store`/`transaction-category`/`payment-method` з ненульовим id показує **згруповану розбивку** магазинів/категорій через `getByStore`/`getByTransactionCategory` (магазин → list кат. транзакцій; категорія/метод оплати → list магазинів) у вигляді рядків з progress bar + count + %. Для NULL-bucket id та `item-category` — табличний receipt/items view (fallback). Props незмінні (kind/item/filters/onClose)
 
 ---
 
@@ -115,7 +115,7 @@
 ## Types (`src/types/`)
 
 - **receipt.types.ts** — `Receipt`, `ReceiptItem`, `ReceiptsListResponse`, `CreateReceiptDto`, `UpdateReceiptDto`, `ParsedReceiptDto` (+storeId/suggestedStoreName/storeIsNew), `ParsedItem` (+itemCategoryId/suggestedCategoryName/categoryIsNew/originalAmount/discountAmount/hasDiscount), `ParseMeta`, `PriceConflict`
-- **statistics.types.ts** — `StatisticsFilters`, `SummaryResponse`, `BreakdownResponse`, `TimelineResponse`, `Granularity`
+- **statistics.types.ts** — `StatisticsFilters` (+paymentMethodId?: string[]), `SummaryResponse`, `BreakdownResponse`, `TimelineResponse`, `Granularity`
 - **store.types.ts** — `Store`, `CreateStoreDto`, `UpdateStoreDto`, `DeleteStoreResponse`
 - **payment-method.types.ts** — `PaymentMethod`, `CreatePaymentMethodDto`, `UpdatePaymentMethodDto`
 - **transaction-category.types.ts** — `TransactionCategory`, `CreateTransactionCategoryDto`, `UpdateTransactionCategoryDto`

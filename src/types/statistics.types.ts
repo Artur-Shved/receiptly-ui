@@ -4,6 +4,7 @@ export interface StatisticsFilters {
   storeId?: string[];
   transactionCategoryId?: string[];
   itemCategoryId?: string[];
+  paymentMethodId?: string[];
 }
 
 export interface SummaryPeriod {

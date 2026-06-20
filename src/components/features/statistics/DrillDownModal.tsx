@@ -81,6 +81,14 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
         } else if (kind === 'store') {
           const res = await statisticsApi.getReceiptsByStore(item.id ?? '', filters);
           setData({ mode: 'receipts', items: res.items, total: res.total });
+        } else if (kind === 'payment-method' && item.id != null) {
+          // Grouped breakdown: which stores were used within this payment method.
+          const res = await statisticsApi.getByStore({
+            ...filters,
+            paymentMethodId: [item.id],
+            storeId: undefined,
+          });
+          setData({ mode: 'breakdown', items: res.items, totalAmount: res.totalAmount });
         } else if (kind === 'payment-method') {
           const res = await statisticsApi.getReceiptsByPaymentMethod(item.id, filters);
           setData({ mode: 'receipts', items: res.items, total: res.total });
