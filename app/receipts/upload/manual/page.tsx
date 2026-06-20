@@ -393,7 +393,7 @@ export default function ManualReceiptPage() {
     parsedManualTotal !== null && !Number.isNaN(parsedManualTotal);
   const effectiveTotal = hasManualOverride ? parsedManualTotal! : autoTotal;
   const totalMismatch =
-    hasManualOverride && Math.abs(parsedManualTotal! - autoTotal) > 0.01;
+    items.length > 0 && hasManualOverride && Math.abs(parsedManualTotal! - autoTotal) > 0.01;
 
   const hasAnyData =
     storeId !== null ||
@@ -663,10 +663,12 @@ export default function ManualReceiptPage() {
 
               {/* Manual total override */}
               <div className="mt-4 rounded-lg border border-[#e5e7eb] p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-[13px] text-[#6b7280]">Сума товарів</span>
-                  <span className="text-[14px] text-[#1a1a1a]">{autoTotal} ₴</span>
-                </div>
+                {items.length > 0 && (
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-[13px] text-[#6b7280]">Сума товарів</span>
+                    <span className="text-[14px] text-[#1a1a1a]">{autoTotal} ₴</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-[13px] text-[#1a1a1a]">Загальна сума чеку</label>
                   <div className="flex items-center gap-2">
