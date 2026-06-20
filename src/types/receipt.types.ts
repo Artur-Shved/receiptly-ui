@@ -70,6 +70,11 @@ export interface CreateReceiptDto {
   receiptDate: string;
   currency?: string;
   items: CreateReceiptItemDto[];
+  /**
+   * Explicit receipt total. Used by the server when `items` is empty;
+   * otherwise the total is computed from item line totals.
+   */
+  totalAmount?: number;
 }
 
 export interface UpdateReceiptDto {
@@ -81,6 +86,11 @@ export interface UpdateReceiptDto {
   receiptDate?: string;
   currency?: string;
   items?: CreateReceiptItemDto[];
+  /**
+   * Explicit receipt total. Used by the server when `items` is empty;
+   * otherwise the total is computed from item line totals.
+   */
+  totalAmount?: number;
 }
 
 export interface ParsedItem {

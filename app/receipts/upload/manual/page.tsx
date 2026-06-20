@@ -434,6 +434,7 @@ export default function ManualReceiptPage() {
         receiptDate: receiptDate || todayDateString(),
         currency: 'UAH',
         items: items.map(({ _key: _k, ...rest }) => rest),
+        totalAmount: effectiveTotal,
       });
       setStep(3);
     } catch {
@@ -692,6 +693,11 @@ export default function ManualReceiptPage() {
                     <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
                     Сума чеку відрізняється від суми товарів.
                   </div>
+                )}
+                {items.length === 0 && !hasManualOverride && (
+                  <p className="mt-2 text-[12px] text-[#6b7280]">
+                    Введіть загальну суму чеку вище
+                  </p>
                 )}
               </div>
 

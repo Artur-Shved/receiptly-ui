@@ -114,7 +114,7 @@
 
 ## Types (`src/types/`)
 
-- **receipt.types.ts** — `Receipt`, `ReceiptItem`, `ReceiptsListResponse`, `CreateReceiptDto`, `UpdateReceiptDto`, `ParsedReceiptDto` (+storeId/suggestedStoreName/storeIsNew), `ParsedItem` (+itemCategoryId/suggestedCategoryName/categoryIsNew/originalAmount/discountAmount/hasDiscount), `ParseMeta`, `PriceConflict`
+- **receipt.types.ts** — `Receipt`, `ReceiptItem`, `ReceiptsListResponse`, `CreateReceiptDto` (+totalAmount?), `UpdateReceiptDto` (+totalAmount?), `ParsedReceiptDto` (+storeId/suggestedStoreName/storeIsNew), `ParsedItem` (+itemCategoryId/suggestedCategoryName/categoryIsNew/originalAmount/discountAmount/hasDiscount), `ParseMeta`, `PriceConflict`
 - **statistics.types.ts** — `StatisticsFilters` (+paymentMethodId?: string[]), `SummaryResponse`, `BreakdownResponse`, `TimelineResponse`, `Granularity`
 - **store.types.ts** — `Store`, `CreateStoreDto`, `UpdateStoreDto`, `DeleteStoreResponse`
 - **payment-method.types.ts** — `PaymentMethod`, `CreatePaymentMethodDto`, `UpdatePaymentMethodDto`

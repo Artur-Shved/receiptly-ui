@@ -350,6 +350,7 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
   const [subModalItem, setSubModalItem] = useState<EditableItem | null | 'new'>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [manualTotalRaw, setManualTotalRaw] = useState(String(receipt.totalAmount ?? 0));
 
   const computedTotal = items.reduce(
     (s, it) => s + Math.max(0, it.originalAmount - (it.discountAmount ?? 0)),
@@ -374,6 +375,7 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
       transactionCategoryId,
       receiptDate,
       items: items.map(({ _key: _k, ...rest }) => rest),
+      totalAmount: items.length === 0 ? (parseFloat(manualTotalRaw) || 0) : undefined,
     });
     setIsLoading(false);
     if (result.error) setError(result.error);
@@ -475,6 +477,25 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
           <button type="button" onClick={() => setSubModalItem('new')} className="mt-2 text-[13px] text-[#1a1a1a] underline hover:opacity-70">
             + Додати товар
           </button>
+
+          {items.length === 0 && (
+            <div className="mt-4 rounded-lg border border-[#e5e7eb] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <label className="text-[13px] text-[#1a1a1a]">Загальна сума чеку</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={manualTotalRaw}
+                    onChange={(e) => setManualTotalRaw(e.target.value)}
+                    className="h-[38px] w-[120px] rounded-lg border border-[#e5e7eb] bg-white px-3 text-right text-[14px] font-medium outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
+                  />
+                  <span className="text-[14px] text-[#6b7280]">₴</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="mt-4 flex items-center justify-between">
             <span className="text-[12px] text-[#9ca3af]">Перераховано автоматично</span>
