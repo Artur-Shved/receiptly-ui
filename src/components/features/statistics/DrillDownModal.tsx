@@ -72,7 +72,16 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
         if (kind === 'store') {
           const res = await statisticsApi.getReceiptsByStore(item.id ?? '', filters);
           setData({ mode: 'receipts', items: res.items, total: res.total });
+        } else if (kind === 'transaction-category' && item.id != null) {
+          // Sub-breakdown: which stores make up this category's spend.
+          const res = await statisticsApi.getByStore({
+            ...filters,
+            transactionCategoryId: [item.id],
+            storeId: undefined,
+          });
+          setData({ mode: 'breakdown', items: res.items, totalAmount: res.totalAmount });
         } else if (kind === 'transaction-category') {
+          // NULL bucket ("Без категорії") → flat receipts.
           const res = await statisticsApi.getReceiptsByTransactionCategory(item.id, filters);
           setData({ mode: 'receipts', items: res.items, total: res.total });
         } else if (kind === 'payment-method' && item.id != null) {
