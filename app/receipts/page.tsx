@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Receipt,
@@ -628,14 +629,29 @@ function FilterButton({ icon, label, active, open, onClick }: FilterButtonProps)
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ReceiptsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ReceiptsContent />
+    </Suspense>
+  );
+}
+
+function ReceiptsContent() {
+  const searchParams = useSearchParams();
   const { logout } = useLogout();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { categories: txCategories } = useTransactionCategories();
+  const { stores } = useStores();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterYearMonth, setFilterYearMonth] = useState<string | null>(null);
-  const [filterCategoryId, setFilterCategoryId] = useState<string | null>(null);
+  const [filterCategoryId, setFilterCategoryId] = useState<string | null>(
+    () => searchParams.get('transactionCategoryId'),
+  );
+  const [filterStoreId, setFilterStoreId] = useState<string | null>(
+    () => searchParams.get('storeId'),
+  );
   const [dateOpen, setDateOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
 
@@ -653,6 +669,7 @@ export default function ReceiptsPage() {
       storeName: debouncedSearch || undefined,
       ...dateRange,
       transactionCategoryIds: filterCategoryId ? [filterCategoryId] : undefined,
+      storeIds: filterStoreId ? [filterStoreId] : undefined,
     });
 
   const [detailsReceipt, setDetailsReceipt] = useState<ReceiptType | null>(null);
@@ -724,13 +741,14 @@ export default function ReceiptsPage() {
   };
 
   const hasActiveFilters =
-    debouncedSearch.trim() !== '' || filterYearMonth !== null || filterCategoryId !== null;
+    debouncedSearch.trim() !== '' || filterYearMonth !== null || filterCategoryId !== null || filterStoreId !== null;
 
   const clearFilters = () => {
     setSearchQuery('');
     setDebouncedSearch('');
     setFilterYearMonth(null);
     setFilterCategoryId(null);
+    setFilterStoreId(null);
   };
 
   const selectedMonthLabel = filterYearMonth ? formatMonthYear(filterYearMonth) : 'Будь-яка дата';
@@ -830,6 +848,19 @@ export default function ReceiptsPage() {
                 </div>
               )}
             </div>
+
+            {/* Store filter chip (active when navigated from statistics) */}
+            {filterStoreId && (
+              <button
+                type="button"
+                onClick={() => setFilterStoreId(null)}
+                className="flex h-[38px] items-center gap-1.5 rounded-lg border px-3 text-[13px] transition-colors"
+                style={{ borderColor: '#1a1a1a', backgroundColor: '#1a1a1a', color: 'white' }}
+              >
+                <span>{stores.find((s) => s.id === filterStoreId)?.name ?? 'Магазин'}</span>
+                <X size={13} />
+              </button>
+            )}
 
             {/* Clear filters */}
             {hasActiveFilters && (

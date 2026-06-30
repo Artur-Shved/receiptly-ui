@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/src/components/ui/Button';
 import { Skeleton } from '@/src/components/ui/Skeleton';
 import { statisticsApi } from '@/src/api/statistics.api';
@@ -37,6 +38,15 @@ function fmtMoney(n: number): string {
   return n.toLocaleString('uk-UA', { maximumFractionDigits: 2 });
 }
 
+function buildViewAllHref(kind: DrillKind, id: string, filters: StatisticsFilters): string {
+  const params = new URLSearchParams();
+  if (kind === 'store') params.set('storeId', id);
+  else params.set('transactionCategoryId', id);
+  params.set('dateFrom', filters.dateFrom);
+  params.set('dateTo', filters.dateTo);
+  return `/receipts?${params.toString()}`;
+}
+
 const HEADERS: Record<DrillKind, { suffix: string; cols: string[] }> = {
   'transaction-category': { suffix: 'чеків', cols: ['Магазин', 'Дата', 'Сума'] },
   store: { suffix: 'чеків', cols: ['Дата', 'Категорія', 'Сума'] },
@@ -59,27 +69,11 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
     setError(null);
     const load = async () => {
       try {
-        if (kind === 'store' && item.id != null) {
-          // Grouped breakdown: which transaction categories were spent at this store.
-          const res = await statisticsApi.getByTransactionCategory({
-            ...filters,
-            storeId: [item.id],
-            transactionCategoryId: undefined,
-          });
-          setData({ mode: 'breakdown', items: res.items, totalAmount: res.totalAmount });
-        } else if (kind === 'transaction-category' && item.id != null) {
-          // Grouped breakdown: which stores were used within this transaction category.
-          const res = await statisticsApi.getByStore({
-            ...filters,
-            transactionCategoryId: [item.id],
-            storeId: undefined,
-          });
-          setData({ mode: 'breakdown', items: res.items, totalAmount: res.totalAmount });
+        if (kind === 'store') {
+          const res = await statisticsApi.getReceiptsByStore(item.id ?? '', filters);
+          setData({ mode: 'receipts', items: res.items, total: res.total });
         } else if (kind === 'transaction-category') {
           const res = await statisticsApi.getReceiptsByTransactionCategory(item.id, filters);
-          setData({ mode: 'receipts', items: res.items, total: res.total });
-        } else if (kind === 'store') {
-          const res = await statisticsApi.getReceiptsByStore(item.id ?? '', filters);
           setData({ mode: 'receipts', items: res.items, total: res.total });
         } else if (kind === 'payment-method' && item.id != null) {
           // Grouped breakdown: which stores were used within this payment method.
@@ -284,13 +278,24 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
           <span className="text-[12px] text-[#9ca3af]">
             {breakdown ? `${shown} записів` : `Показано ${shown} з ${total}`}
           </span>
-          <Button
-            fullWidth={false}
-            className="py-2 px-4 text-[12px]"
-            onClick={onClose}
-          >
-            Закрити
-          </Button>
+          <div className="flex items-center gap-3">
+            {(kind === 'store' || kind === 'transaction-category') && item.id != null && (
+              <Link
+                href={buildViewAllHref(kind, item.id, filters)}
+                onClick={onClose}
+                className="text-[12px] text-[#0F6E56] underline hover:opacity-80"
+              >
+                Переглянути всі у Чеках →
+              </Link>
+            )}
+            <Button
+              fullWidth={false}
+              className="py-2 px-4 text-[12px]"
+              onClick={onClose}
+            >
+              Закрити
+            </Button>
+          </div>
         </div>
       </div>
     </div>
