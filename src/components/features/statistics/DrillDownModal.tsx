@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/src/components/ui/Button';
@@ -60,6 +61,7 @@ type LoadedBreakdown = { mode: 'breakdown'; items: BreakdownItem[]; totalAmount:
 type Loaded = LoadedReceipts | LoadedItems | LoadedBreakdown;
 
 export function DrillDownModal({ kind, item, filters, onClose }: Props) {
+  const router = useRouter();
   const [data, setData] = useState<Loaded | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -168,11 +170,9 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
               {breakdown.map((b, idx) => {
                 const barPct =
                   breakdownMax === 0 ? 0 : (b.totalAmount / breakdownMax) * 100;
-                return (
-                  <div
-                    key={`${b.id ?? 'none'}-${idx}`}
-                    className="border-b border-[#e5e7eb] px-4 py-3 last:border-b-0"
-                  >
+                const isClickable = kind === 'transaction-category' && b.id != null;
+                const rowContent = (
+                  <>
                     <div className="flex items-center justify-between">
                       <span className="truncate text-[13px] text-[#1a1a1a]">{b.name}</span>
                       <span className="tnum text-[13px] font-medium text-[#1a1a1a]">
@@ -189,6 +189,30 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
                       <span>{b.count} {header.suffix}</span>
                       <span className="tnum">{b.percentage.toFixed(1)}%</span>
                     </div>
+                  </>
+                );
+                return isClickable ? (
+                  <button
+                    key={`${b.id ?? 'none'}-${idx}`}
+                    type="button"
+                    onClick={() => {
+                      const params = new URLSearchParams();
+                      params.set('storeId', b.id!);
+                      params.set('dateFrom', filters.dateFrom);
+                      params.set('dateTo', filters.dateTo);
+                      router.push(`/receipts?${params.toString()}`);
+                      onClose();
+                    }}
+                    className="block w-full border-b border-[#e5e7eb] px-4 py-3 text-left last:border-b-0 hover:bg-[#FAFAFA]"
+                  >
+                    {rowContent}
+                  </button>
+                ) : (
+                  <div
+                    key={`${b.id ?? 'none'}-${idx}`}
+                    className="border-b border-[#e5e7eb] px-4 py-3 last:border-b-0"
+                  >
+                    {rowContent}
                   </div>
                 );
               })}
