@@ -393,7 +393,7 @@ export default function ManualReceiptPage() {
     parsedManualTotal !== null && !Number.isNaN(parsedManualTotal);
   const effectiveTotal = hasManualOverride ? parsedManualTotal! : autoTotal;
   const totalMismatch =
-    hasManualOverride && Math.abs(parsedManualTotal! - autoTotal) > 0.01;
+    items.length > 0 && hasManualOverride && Math.abs(parsedManualTotal! - autoTotal) > 0.01;
 
   const hasAnyData =
     storeId !== null ||
@@ -434,6 +434,7 @@ export default function ManualReceiptPage() {
         receiptDate: receiptDate || todayDateString(),
         currency: 'UAH',
         items: items.map(({ _key: _k, ...rest }) => rest),
+        totalAmount: effectiveTotal,
       });
       setStep(3);
     } catch {
@@ -444,7 +445,6 @@ export default function ManualReceiptPage() {
   };
 
   const handleConfirm = () => {
-    if (items.length === 0) return;
     if (totalMismatch) {
       setShowSumMismatch(true);
       return;
@@ -593,8 +593,8 @@ export default function ManualReceiptPage() {
               ) : (
                 <div className="overflow-hidden rounded-lg border border-[#e5e7eb]">
                   <div
-                    className="grid text-[11px] uppercase tracking-wide text-[#9ca3af]"
-                    style={{ gridTemplateColumns: '3fr 1.2fr 1fr 1fr 56px', padding: '8px 12px', backgroundColor: '#F7F7F7' }}
+                    className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
+                    style={{ gridTemplateColumns: '3fr 1.2fr 1fr 1fr 56px', padding: '8px 12px', backgroundColor: 'var(--brand-soft, #E1F5EE)' }}
                   >
                     <span>Назва</span>
                     <span>Категорія</span>
@@ -663,10 +663,12 @@ export default function ManualReceiptPage() {
 
               {/* Manual total override */}
               <div className="mt-4 rounded-lg border border-[#e5e7eb] p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-[13px] text-[#6b7280]">Сума товарів</span>
-                  <span className="text-[14px] text-[#1a1a1a]">{autoTotal} ₴</span>
-                </div>
+                {items.length > 0 && (
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-[13px] text-[#6b7280]">Сума товарів</span>
+                    <span className="text-[14px] text-[#1a1a1a]">{autoTotal} ₴</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-[13px] text-[#1a1a1a]">Загальна сума чеку</label>
                   <div className="flex items-center gap-2">
@@ -694,6 +696,11 @@ export default function ManualReceiptPage() {
                     Сума чеку відрізняється від суми товарів.
                   </div>
                 )}
+                {items.length === 0 && !hasManualOverride && (
+                  <p className="mt-2 text-[12px] text-[#6b7280]">
+                    Введіть загальну суму чеку вище
+                  </p>
+                )}
               </div>
 
               {submitError && (
@@ -714,7 +721,6 @@ export default function ManualReceiptPage() {
                 <Button
                   fullWidth={false}
                   isLoading={isSubmitting}
-                  disabled={items.length === 0}
                   icon={<Check size={15} />}
                   className="py-2 px-6 text-[13px]"
                   onClick={handleConfirm}

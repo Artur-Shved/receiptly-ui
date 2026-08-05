@@ -61,7 +61,7 @@ function CreateModal({ onClose, onCreate }: CreateModalProps) {
       >
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-[16px] font-medium">Новий метод оплати</h2>
+          <h2 className="text-[16px] font-medium text-[#1a1a1a]">Новий метод оплати</h2>
           <button
             type="button"
             onClick={onClose}
@@ -157,7 +157,7 @@ function EditModal({ method, onClose, onUpdate }: EditModalProps) {
       >
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-[16px] font-medium">Редагувати метод оплати</h2>
+          <h2 className="text-[16px] font-medium text-[#1a1a1a]">Редагувати метод оплати</h2>
           <button
             type="button"
             onClick={onClose}
@@ -236,7 +236,7 @@ function DeleteModal({ method, onClose, onDelete }: DeleteModalProps) {
       >
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[16px] font-medium">Видалити метод оплати?</h2>
+          <h2 className="text-[16px] font-medium text-[#1a1a1a]">Видалити метод оплати?</h2>
           <button
             type="button"
             onClick={onClose}
@@ -370,19 +370,22 @@ export default function PaymentMethodsPage() {
       )}
 
       {isLoading ? (
-        <div className="mt-5 flex items-center justify-center py-12 text-[13px] text-gray-400">
+        <div className="mt-5 flex items-center justify-center py-12 text-[13px] text-gray-500">
           Завантаження...
         </div>
       ) : methods.length === 0 && !error ? (
         /* Empty state */
         <div className="mt-5 overflow-hidden rounded-lg border border-[#e5e7eb] bg-white">
           <div className="flex flex-col items-center gap-2.5 px-6 py-12 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F7F7F7]">
-              <CreditCard size={24} className="text-[#9ca3af]" />
+            <div
+              className="flex h-[52px] w-[52px] items-center justify-center rounded-full"
+              style={{ backgroundColor: 'var(--brand-soft)' }}
+            >
+              <CreditCard size={24} style={{ color: 'var(--brand)' }} />
             </div>
-            <p className="text-[15px] font-medium text-[#1a1a1a]">Немає методів оплати</p>
+            <p className="text-[15px] font-medium text-[#1a1a1a]">Поки порожньо</p>
             <p className="max-w-[280px] text-[13px] leading-[1.5] text-gray-500">
-              Додайте перший метод оплати — картку, готівку або цифровий гаманець
+              Додайте перший запис — це займе секунди
             </p>
             <Button
               fullWidth={false}

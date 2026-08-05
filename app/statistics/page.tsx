@@ -225,18 +225,18 @@ export default function StatisticsPage() {
           )}
 
           {!error && showOnboardingEmpty && (
-            <div
-              className="mt-6 flex flex-col items-center rounded-xl bg-white py-12"
-              style={{ border: '0.5px solid #e5e7eb' }}
-            >
-              <div className="mb-4 flex h-[48px] w-[48px] items-center justify-center rounded-full bg-[#F7F7F7] text-[#9ca3af]">
-                <Receipt size={22} />
+            <div className="card-surface mt-6 flex flex-col items-center rounded-[14px] py-12">
+              <div
+                className="mb-4 flex h-[52px] w-[52px] items-center justify-center rounded-full"
+                style={{ backgroundColor: 'var(--brand-soft)', color: 'var(--brand)' }}
+              >
+                <Receipt size={24} />
               </div>
               <p className="mb-2 text-[15px] font-medium text-[#1a1a1a]">
-                Немає даних за цей період
+                Поки що нема що рахувати
               </p>
               <p className="mb-5 max-w-xs text-center text-[13px] text-gray-500">
-                Додайте чеки щоб побачити аналітику витрат
+                Додайте кілька чеків — і тут з&apos;явиться аналітика витрат
               </p>
               <Link href="/receipts/upload">
                 <Button fullWidth={false} icon={<Camera size={14} />}>

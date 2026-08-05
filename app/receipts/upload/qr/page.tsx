@@ -36,6 +36,7 @@ import type {
   CreateReceiptItemDto,
 } from '@/src/types/receipt.types';
 import type { ItemCategory } from '@/src/types/item-category.types';
+import { useCountUp } from '@/src/hooks/useCountUp';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -140,6 +141,28 @@ function DpsBadge() {
     >
       ДПС
     </span>
+  );
+}
+
+// ─── Success summary line (count-up) ──────────────────────────────────────────
+
+/** Ukrainian plural form: 1 товар, 2 товари, 5 товарів. */
+function itemsWord(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'товар';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'товари';
+  return 'товарів';
+}
+
+function SuccessAddedLine({ count, total }: { count: number; total: number }) {
+  const animated = useCountUp(total);
+  return (
+    <p className="mb-2 flex items-baseline justify-center gap-1.5 text-[14px] text-[#60646C]">
+      Додано {count} {itemsWord(count)} на
+      <span className="tnum text-[24px] font-semibold text-[#1a1a1a]">{animated.toFixed(2)}</span>
+      <span className="font-medium text-[#1a1a1a]">₴</span>
+    </p>
   );
 }
 
@@ -503,7 +526,6 @@ export default function QrUploadPage() {
       setShowFieldErrors(true);
       return;
     }
-    if (items.length === 0) return;
     setIsSubmitting(true);
     setSubmitError(null);
     try {
@@ -840,8 +862,8 @@ export default function QrUploadPage() {
 
               <div className="overflow-hidden rounded-lg border border-[#e5e7eb]">
                 <div
-                  className="grid text-[11px] uppercase tracking-wide text-[#9ca3af]"
-                  style={{ gridTemplateColumns: '3fr 1fr 1fr 56px', padding: '8px 12px', backgroundColor: '#F7F7F7' }}
+                  className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
+                  style={{ gridTemplateColumns: '3fr 1fr 1fr 56px', padding: '8px 12px', backgroundColor: 'var(--brand-soft, #E1F5EE)' }}
                 >
                   <span>Назва</span>
                   <span>К-сть</span>
@@ -939,7 +961,6 @@ export default function QrUploadPage() {
                 <Button
                   fullWidth={false}
                   isLoading={isSubmitting}
-                  disabled={items.length === 0}
                   icon={<Check size={14} />}
                   className="py-2 px-6 text-[13px]"
                   onClick={handleConfirm}
@@ -953,10 +974,21 @@ export default function QrUploadPage() {
           {/* ── Step: Success ───────────────────────────────────────────── */}
           {step === 'success' && (
             <div className="flex flex-col items-center py-8">
-              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: '#EAF3DE' }}>
+              <div className="pop-in mb-5 flex h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: '#EAF3DE' }}>
                 <Check size={32} color="#3B6D11" />
               </div>
               <h2 className="mb-2 text-[20px] font-medium">Чек збережено</h2>
+              <SuccessAddedLine
+                count={items.length}
+                total={
+                  Math.round(
+                    items.reduce(
+                      (s, it) => s + Math.max(0, it.originalAmount - (it.discountAmount ?? 0)),
+                      0,
+                    ) * 100,
+                  ) / 100
+                }
+              />
               <p className="mb-8 text-[14px] text-[#6b7280]">Товари додано до вашої статистики витрат</p>
               <div className="mb-8 flex flex-wrap justify-center gap-2">
                 {selectedStore && <span className="rounded-full bg-white px-3 py-1 text-[13px] shadow-sm border border-[#e5e7eb]">{selectedStore.name}</span>}

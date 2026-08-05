@@ -1,6 +1,8 @@
 'use client';
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { Skeleton } from '@/src/components/ui/Skeleton';
+import { chartColorScale } from '@/src/lib/category-colors';
 import type { BreakdownItem } from '@/src/types/statistics.types';
 
 interface Props {
@@ -10,22 +12,6 @@ interface Props {
   onSegmentClick?: (item: BreakdownItem) => void;
 }
 
-const CATEGORY_PALETTE = [
-  '#1a1a1a',
-  '#5DCAA5',
-  '#EF9F27',
-  '#378ADD',
-  '#D85A30',
-  '#534AB7',
-  '#3B6D11',
-];
-const NO_CATEGORY_COLOR = '#d1d5db';
-
-function colorFor(item: BreakdownItem, idx: number): string {
-  if (item.id === null) return NO_CATEGORY_COLOR;
-  return CATEGORY_PALETTE[idx % CATEGORY_PALETTE.length];
-}
-
 function fmtMoney(n: number): string {
   return n.toLocaleString('uk-UA', { maximumFractionDigits: 0 });
 }
@@ -33,16 +19,16 @@ function fmtMoney(n: number): string {
 export function DonutChart({ data, totalAmount, isLoading, onSegmentClick }: Props) {
   if (isLoading && !data) {
     return (
-      <div className="rounded-xl bg-white p-5" style={{ border: '0.5px solid #e5e7eb' }}>
-        <div className="mb-3 h-3 w-32 rounded bg-[#F0F0F0]" />
-        <div className="h-[200px] w-full rounded bg-[#F7F7F7]" />
+      <div className="card-surface rounded-[14px] p-5">
+        <Skeleton className="mb-3 h-3 w-32" />
+        <Skeleton className="h-[200px] w-full" />
       </div>
     );
   }
 
   if (!data || data.length === 0) {
     return (
-      <div className="rounded-xl bg-white p-5" style={{ border: '0.5px solid #e5e7eb' }}>
+      <div className="card-surface rounded-[14px] p-5">
         <p className="mb-3 text-[13px] font-medium text-[#1a1a1a]">По категоріях транзакцій</p>
         <div className="flex h-[200px] items-center justify-center text-[13px] text-[#9ca3af]">
           Немає даних
@@ -51,13 +37,14 @@ export function DonutChart({ data, totalAmount, isLoading, onSegmentClick }: Pro
     );
   }
 
-  const chartData = data.map((d, idx) => ({
+  const colorOf = chartColorScale(data.map((d) => d.id));
+  const chartData = data.map((d) => ({
     ...d,
-    color: colorFor(d, idx),
+    color: colorOf(d.id),
   }));
 
   return (
-    <div className="rounded-xl bg-white p-5" style={{ border: '0.5px solid #e5e7eb' }}>
+    <div className="card-surface rounded-[14px] p-5">
       <p className="mb-3 text-[13px] font-medium text-[#1a1a1a]">По категоріях транзакцій</p>
 
       <div className="flex items-center gap-4">
@@ -73,6 +60,8 @@ export function DonutChart({ data, totalAmount, isLoading, onSegmentClick }: Pro
                 paddingAngle={1}
                 stroke="#fff"
                 strokeWidth={1}
+                isAnimationActive
+                animationDuration={400}
                 onClick={(d: { payload?: BreakdownItem }) => d?.payload && onSegmentClick?.(d.payload)}
               >
                 {chartData.map((entry, idx) => (
@@ -96,7 +85,7 @@ export function DonutChart({ data, totalAmount, isLoading, onSegmentClick }: Pro
           <div
             className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
           >
-            <span className="text-[18px] font-medium text-[#1a1a1a]">{fmtMoney(totalAmount)}</span>
+            <span className="tnum text-[24px] font-semibold text-[#1a1a1a]">{fmtMoney(totalAmount)}</span>
             <span className="text-[11px] text-[#9ca3af]">грн</span>
           </div>
         </div>
@@ -115,7 +104,7 @@ export function DonutChart({ data, totalAmount, isLoading, onSegmentClick }: Pro
                 style={{ backgroundColor: d.color }}
               />
               <span className="flex-1 truncate text-[12px] text-[#6b7280]">{d.name}</span>
-              <span className="text-[12px] font-medium text-[#1a1a1a]">
+              <span className="tnum text-[12px] font-medium text-[#1a1a1a]">
                 {d.percentage.toFixed(1)}%
               </span>
             </button>

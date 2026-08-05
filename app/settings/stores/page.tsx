@@ -61,7 +61,7 @@ function CreateModal({ onClose, onCreate }: CreateModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-[16px] font-medium">Новий магазин</h2>
+          <h2 className="text-[16px] font-medium text-[#1a1a1a]">Новий магазин</h2>
           <button
             type="button"
             onClick={onClose}
@@ -147,7 +147,7 @@ function EditModal({ store, onClose, onUpdate }: EditModalProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-[16px] font-medium">Редагувати магазин</h2>
+          <h2 className="text-[16px] font-medium text-[#1a1a1a]">Редагувати магазин</h2>
           <button
             type="button"
             onClick={onClose}
@@ -224,7 +224,7 @@ function DeleteModal({ store, receiptsCount, onClose, onConfirm }: DeleteModalPr
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[16px] font-medium">Видалити магазин?</h2>
+          <h2 className="text-[16px] font-medium text-[#1a1a1a]">Видалити магазин?</h2>
           <button
             type="button"
             onClick={onClose}
@@ -453,13 +453,13 @@ export default function StoresPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Пошук магазину..."
-            className="h-[38px] w-full rounded-lg border border-[#e5e7eb] bg-white pl-[34px] pr-3 text-[13px] outline-none transition-colors focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
+            className="h-[38px] w-full rounded-lg border border-[#e5e7eb] bg-white pl-[34px] pr-3 text-[13px] text-[#1a1a1a] placeholder:text-[#9ca3af] outline-none transition-colors focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
           />
         </div>
       </div>
 
       {isLoading ? (
-        <div className="mt-5 flex items-center justify-center py-12 text-[13px] text-gray-400">
+        <div className="mt-5 flex items-center justify-center py-12 text-[13px] text-gray-500">
           Завантаження...
         </div>
       ) : (
@@ -467,7 +467,7 @@ export default function StoresPage() {
           <div className="mt-5">
             <SectionBlock title="Системні" count={systemStores.length}>
               {systemStores.length === 0 ? (
-                <div className="px-4 py-8 text-center text-[13px] text-gray-400">
+                <div className="px-4 py-8 text-center text-[13px] text-gray-500">
                   Немає системних магазинів
                 </div>
               ) : (

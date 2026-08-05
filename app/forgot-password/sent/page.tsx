@@ -44,7 +44,7 @@ function SentContent() {
         Надіслали інструкції на{' '}
         <span className="font-medium text-[#1a1a1a]">{email}</span>
       </p>
-      <p className="mt-1 text-[13px] text-gray-400">
+      <p className="mt-1 text-[13px] text-gray-500">
         Посилання дійсне 1 годину
       </p>
 

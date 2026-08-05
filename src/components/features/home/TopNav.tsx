@@ -14,7 +14,7 @@ interface TopNavProps {
 
 function navClass(active: boolean) {
   return active
-    ? 'border-b-2 border-[#1a1a1a] pb-1 text-[14px] font-medium text-[#1a1a1a]'
+    ? 'border-b-2 border-[var(--brand)] pb-1 text-[14px] font-medium text-[var(--brand)]'
     : 'border-b-2 border-transparent pb-1 text-[14px] text-gray-500 hover:text-gray-700';
 }
 

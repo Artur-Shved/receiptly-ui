@@ -10,9 +10,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANTS = {
-  primary: 'bg-[#1a1a1a] text-white py-[14px] px-4 font-medium',
-  secondary: 'bg-transparent border border-[#d1d5db] py-[13px] px-4',
-  danger: 'bg-[#FCEBEB] text-[#A32D2D] py-[13px] px-4 font-medium',
+  primary:
+    'bg-[var(--brand,#0F6E56)] text-white py-[14px] px-4 font-medium hover:bg-[var(--brand-strong,#0B5443)] active:scale-[0.99]',
+  secondary:
+    'bg-[#F0F0F3] text-[#1a1a1a] py-[13px] px-4 hover:bg-[#E6E7EB] active:scale-[0.99]',
+  danger: 'bg-[#FCEBEB] text-[#A32D2D] py-[13px] px-4 font-medium hover:bg-[#F8DCDC]',
 } as const;
 
 export function Button({
@@ -30,7 +32,7 @@ export function Button({
       {...props}
       disabled={disabled || isLoading}
       className={[
-        'flex items-center justify-center gap-2 rounded-lg text-sm transition-opacity',
+        'flex items-center justify-center gap-2 rounded-[10px] text-sm transition-[background-color,transform] duration-150',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         VARIANTS[variant],
         fullWidth ? 'w-full' : '',

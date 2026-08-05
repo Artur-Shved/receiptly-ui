@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Receipt,
@@ -18,7 +19,13 @@ import { Button } from '@/src/components/ui/Button';
 import { SearchableStoreSelect } from '@/src/components/features/receipts/SearchableStoreSelect';
 import { SearchableEntitySelect } from '@/src/components/features/receipts/SearchableEntitySelect';
 import { AddReceiptChoiceModal } from '@/src/components/features/receipts/AddReceiptChoiceModal';
+import {
+  ReceiptDetailsModal,
+  ItemCategoryBadge,
+} from '@/src/components/features/receipts/ReceiptDetailsModal';
 import { receiptsApi } from '@/src/api/receipts.api';
+import { Skeleton } from '@/src/components/ui/Skeleton';
+import { categoryColor } from '@/src/lib/category-colors';
 import { useLogout } from '@/src/hooks/useAuth';
 import { useReceipts } from '@/src/hooks/useReceipts';
 import { useStores } from '@/src/hooks/useStores';
@@ -34,23 +41,6 @@ import type { ItemCategory } from '@/src/types/item-category.types';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const STORE_COLORS = ['#6366f1', '#f59e0b', '#8b5cf6', '#3b82f6', '#ef4444'];
-function storeColor(name: string): string {
-  return STORE_COLORS[name.charCodeAt(0) % STORE_COLORS.length];
-}
-
-const CATEGORY_COLORS = [
-  { bg: '#DBEAFE', text: '#1D4ED8' },
-  { bg: '#D1FAE5', text: '#065F46' },
-  { bg: '#FEF3C7', text: '#92400E' },
-  { bg: '#FCE7F3', text: '#9D174D' },
-  { bg: '#EDE9FE', text: '#5B21B6' },
-  { bg: '#FFEDD5', text: '#C2410C' },
-];
-function categoryColor(name: string) {
-  return CATEGORY_COLORS[name.charCodeAt(0) % CATEGORY_COLORS.length];
-}
-
 const UK_MONTHS_SHORT = [
   'січ', 'лют', 'бер', 'квіт', 'трав', 'черв',
   'лип', 'серп', 'вер', 'жовт', 'лист', 'груд',
@@ -65,11 +55,6 @@ function formatShortDate(iso: string): string {
   return `${d.getDate()} ${UK_MONTHS_SHORT[d.getMonth()]}`;
 }
 
-function formatFullDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
-}
-
 function formatMonthYear(ym: string): string {
   const [year, month] = ym.split('-');
   return `${UK_MONTHS_LONG[parseInt(month) - 1]} ${year}`;
@@ -79,35 +64,45 @@ function toDateInputValue(iso: string): string {
   return iso.slice(0, 10);
 }
 
+/** Convert a `YYYY-MM` month into inclusive YYYY-MM-DD date bounds. */
+function monthToDateRange(ym: string): { dateFrom: string; dateTo: string } {
+  const [y, m] = ym.split('-').map(Number);
+  const lastDay = new Date(y, m, 0).getDate();
+  return { dateFrom: `${ym}-01`, dateTo: `${ym}-${String(lastDay).padStart(2, '0')}` };
+}
+
+const UK_MONTHS_GENITIVE = [
+  'січня', 'лютого', 'березня', 'квітня', 'травня', 'червня',
+  'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня',
+];
+
+/** Day-group header label: «Сьогодні» / «Вчора» / «9 червня» (+ рік якщо не поточний). */
+function formatGroupLabel(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const startOfDay = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diffDays = Math.round((startOfDay(now) - startOfDay(d)) / 86_400_000);
+  if (diffDays === 0) return 'Сьогодні';
+  if (diffDays === 1) return 'Вчора';
+  const base = `${d.getDate()} ${UK_MONTHS_GENITIVE[d.getMonth()]}`;
+  return d.getFullYear() === now.getFullYear() ? base : `${base} ${d.getFullYear()}`;
+}
+
 // ─── Badges ───────────────────────────────────────────────────────────────────
 
-function TransactionCategoryBadge({ name }: { name: string | null | undefined }) {
-  if (!name) return <span className="text-[12px] text-[#9ca3af]">—</span>;
-  const { bg, text } = categoryColor(name);
+function TransactionCategoryBadge({
+  category,
+}: {
+  category: { id: string; name: string } | null | undefined;
+}) {
+  if (!category) return <span className="text-[12px] text-[#9ca3af]">—</span>;
+  const { bg, text } = categoryColor(category.id);
   return (
     <span
       className="rounded-full px-2 py-0.5 text-[12px] font-medium"
       style={{ backgroundColor: bg, color: text }}
     >
-      {name}
-    </span>
-  );
-}
-
-function ItemCategoryBadge({ name }: { name: string | null | undefined }) {
-  if (!name) {
-    return (
-      <span
-        className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-        style={{ backgroundColor: '#FAEEDA', color: '#633806' }}
-      >
-        Без кат.
-      </span>
-    );
-  }
-  return (
-    <span className="rounded-full bg-[#F7F7F7] px-2 py-0.5 text-[11px] text-[#6b7280]">
-      {name}
+      {category.name}
     </span>
   );
 }
@@ -127,123 +122,6 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
         <div className="flex justify-end gap-2">
           <Button variant="secondary" fullWidth={false} onClick={onCancel}>Скасувати</Button>
           <Button variant="danger" fullWidth={false} onClick={onConfirm}>Вийти</Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Details Modal ─────────────────────────────────────────────────────────────
-
-interface DetailsModalProps {
-  receipt: ReceiptType;
-  onClose: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
-}
-
-function DetailsModal({ receipt, onClose, onEdit, onDelete }: DetailsModalProps) {
-  const storeName = receipt.store?.name ?? '—';
-  const paymentMethodName = receipt.paymentMethod?.name ?? '—';
-  const categoryName = receipt.transactionCategory?.name ?? '—';
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
-      onClick={onClose}
-    >
-      <div
-        className="flex w-[640px] max-w-full flex-col rounded-xl bg-white shadow-xl"
-        style={{ maxHeight: 'calc(100vh - 32px)' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex flex-shrink-0 items-start justify-between border-b border-[#e5e7eb] p-5">
-          <div>
-            <h2 className="text-[16px] font-medium text-[#1a1a1a]">{storeName} — {formatFullDate(receipt.receiptDate)}</h2>
-            <p className="mt-0.5 text-[12px] text-[#9ca3af]">Чек #{receipt.id.slice(0, 8)}</p>
-          </div>
-          <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-[#F7F7F7] hover:text-[#1a1a1a]">
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5">
-          {/* Meta grid */}
-          <div className="mb-5 grid grid-cols-2 gap-3">
-            {[
-              { label: 'Магазин', value: storeName },
-              { label: 'Дата покупки', value: formatFullDate(receipt.receiptDate) },
-              { label: 'Метод оплати', value: paymentMethodName },
-              { label: 'Категорія транзакції', value: categoryName },
-            ].map(({ label, value }) => (
-              <div key={label} className="rounded-lg p-[10px_12px]" style={{ backgroundColor: '#F7F7F7' }}>
-                <p className="text-[11px] uppercase tracking-wide text-[#9ca3af]">{label}</p>
-                <p className="mt-0.5 text-[13px] font-medium text-[#1a1a1a]">{value}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Items */}
-          <p className="mb-3 text-[12px] uppercase tracking-wide text-[#9ca3af]">Товари</p>
-          <div className="overflow-hidden rounded-lg border border-[#e5e7eb]">
-            <div
-              className="grid text-[11px] uppercase tracking-wide text-[#9ca3af]"
-              style={{ gridTemplateColumns: '3fr 1fr 1fr 1fr 60px', padding: '8px 12px', backgroundColor: '#F7F7F7' }}
-            >
-              <span>Назва</span><span>Кат.</span><span>К-сть</span><span>Ціна/од</span>
-              <span className="text-right">Сума</span>
-            </div>
-            {(receipt.items ?? []).length === 0 && (
-              <div className="px-4 py-4 text-center text-[13px] text-[#9ca3af]">Немає товарів</div>
-            )}
-            {(receipt.items ?? []).map((item) => (
-              <div
-                key={item.id}
-                className="grid border-t border-[#e5e7eb]"
-                style={{ gridTemplateColumns: '3fr 1fr 1fr 1fr 60px', padding: '8px 12px' }}
-              >
-                <span className="text-[13px] text-[#1a1a1a]">{item.name}</span>
-                <span><ItemCategoryBadge name={item.itemCategory?.name} /></span>
-                <span className="text-[13px] text-[#6b7280]">{item.quantity}{item.unit ? ` ${item.unit}` : ''}</span>
-                <span className="text-[13px] text-[#6b7280]">{item.pricePerUnit} {receipt.currency}</span>
-                <span className="text-right text-[13px] text-[#1a1a1a]">
-                  {item.discountAmount > 0 ? (
-                    <span className="flex flex-col items-end leading-tight">
-                      <span className="text-[11px] text-[#9ca3af] line-through">{item.originalAmount} {receipt.currency}</span>
-                      <span className="text-[11px]" style={{ color: '#A32D2D' }}>−{item.discountAmount} {receipt.currency}</span>
-                      <span className="font-medium">{item.totalPrice} {receipt.currency}</span>
-                    </span>
-                  ) : (
-                    <>{item.totalPrice} {receipt.currency}</>
-                  )}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Total */}
-          <div className="mt-4 flex items-center justify-end gap-4 border-t border-[#e5e7eb] pt-3">
-            <span className="text-[13px] text-[#6b7280]">Загальна сума</span>
-            <span className="text-[18px] font-medium">{receipt.totalAmount} {receipt.currency}</span>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex flex-shrink-0 items-center justify-between border-t border-[#e5e7eb] p-5">
-          <Button variant="danger" fullWidth={false} icon={<Trash2 size={14} />} className="py-2 px-[14px] text-[13px]" onClick={onDelete}>
-            Видалити
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="secondary" fullWidth={false} icon={<Pencil size={14} />} className="py-2 px-[14px] text-[13px]" onClick={onEdit}>
-              Редагувати
-            </Button>
-            <Button fullWidth={false} className="py-2 px-[14px] text-[13px]" onClick={onClose}>
-              Закрити
-            </Button>
-          </div>
         </div>
       </div>
     </div>
@@ -473,6 +351,7 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
   const [subModalItem, setSubModalItem] = useState<EditableItem | null | 'new'>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [manualTotalRaw, setManualTotalRaw] = useState(String(receipt.totalAmount ?? 0));
 
   const computedTotal = items.reduce(
     (s, it) => s + Math.max(0, it.originalAmount - (it.discountAmount ?? 0)),
@@ -490,7 +369,6 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
   };
 
   const handleSubmit = async () => {
-    if (items.length === 0) return;
     setIsLoading(true); setError(null);
     const result = await onSave(receipt.id, {
       storeId,
@@ -498,6 +376,7 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
       transactionCategoryId,
       receiptDate,
       items: items.map(({ _key: _k, ...rest }) => rest),
+      totalAmount: items.length === 0 ? (parseFloat(manualTotalRaw) || 0) : undefined,
     });
     setIsLoading(false);
     if (result.error) setError(result.error);
@@ -576,7 +455,10 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
               return (
                 <div key={item._key} className="flex items-center gap-3 border-b border-[#e5e7eb] p-3 last:border-b-0">
                   <span className="flex-1 text-[13px] text-[#1a1a1a]">{item.name}</span>
-                  <ItemCategoryBadge name={item.itemCategoryId ? itemCategories.find((c) => c.id === item.itemCategoryId)?.name : null} />
+                  <ItemCategoryBadge
+                    id={item.itemCategoryId}
+                    name={item.itemCategoryId ? itemCategories.find((c) => c.id === item.itemCategoryId)?.name : null}
+                  />
                   <span className="text-[13px] text-[#6b7280]">{item.quantity}{item.unit ? ` ${item.unit}` : ''}</span>
                   {discount > 0 ? (
                     <span className="flex flex-col items-end leading-tight">
@@ -597,6 +479,25 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
             + Додати товар
           </button>
 
+          {items.length === 0 && (
+            <div className="mt-4 rounded-lg border border-[#e5e7eb] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <label className="text-[13px] text-[#1a1a1a]">Загальна сума чеку</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={manualTotalRaw}
+                    onChange={(e) => setManualTotalRaw(e.target.value)}
+                    className="h-[38px] w-[120px] rounded-lg border border-[#e5e7eb] bg-white px-3 text-right text-[14px] font-medium outline-none focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
+                  />
+                  <span className="text-[14px] text-[#6b7280]">₴</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="mt-4 flex items-center justify-between">
             <span className="text-[12px] text-[#9ca3af]">Перераховано автоматично</span>
             <div className="flex items-center gap-3">
@@ -614,7 +515,7 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
 
         <div className="flex flex-shrink-0 justify-end gap-2 border-t border-[#e5e7eb] p-5">
           <Button variant="secondary" fullWidth={false} onClick={onClose} className="py-2 px-4 text-[13px]">Скасувати</Button>
-          <Button fullWidth={false} isLoading={isLoading} disabled={items.length === 0} onClick={handleSubmit} className="py-2 px-4 text-[13px]">
+          <Button fullWidth={false} isLoading={isLoading} onClick={handleSubmit} className="py-2 px-4 text-[13px]">
             Зберегти зміни
           </Button>
         </div>
@@ -728,16 +629,48 @@ function FilterButton({ icon, label, active, open, onClick }: FilterButtonProps)
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ReceiptsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ReceiptsContent />
+    </Suspense>
+  );
+}
+
+function ReceiptsContent() {
+  const searchParams = useSearchParams();
   const { logout } = useLogout();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const { receipts, isLoading, error, hasMore, loadMore, updateReceipt, removeReceipt } = useReceipts();
   const { categories: txCategories } = useTransactionCategories();
+  const { stores } = useStores();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterYearMonth, setFilterYearMonth] = useState<string | null>(null);
-  const [filterCategoryId, setFilterCategoryId] = useState<string | null>(null);
+  const [filterCategoryId, setFilterCategoryId] = useState<string | null>(
+    () => searchParams.get('transactionCategoryId'),
+  );
+  const [filterStoreId, setFilterStoreId] = useState<string | null>(
+    () => searchParams.get('storeId'),
+  );
   const [dateOpen, setDateOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
+
+  // Debounce store search so each keystroke doesn't trigger a request.
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  // Server-side filtering — pass the active filters to the hook so results
+  // span the whole dataset, not just the currently loaded page.
+  const dateRange = filterYearMonth ? monthToDateRange(filterYearMonth) : {};
+  const { receipts, isLoading, error, hasMore, loadMore, updateReceipt, removeReceipt } =
+    useReceipts({
+      storeName: debouncedSearch || undefined,
+      ...dateRange,
+      transactionCategoryIds: filterCategoryId ? [filterCategoryId] : undefined,
+      storeIds: filterStoreId ? [filterStoreId] : undefined,
+    });
 
   const [detailsReceipt, setDetailsReceipt] = useState<ReceiptType | null>(null);
   const [editReceipt, setEditReceipt] = useState<ReceiptType | null>(null);
@@ -757,39 +690,65 @@ export default function ReceiptsPage() {
   }, []);
 
   // Deep-link: open a receipt's details when arriving with ?receiptId=<id>
-  // (e.g. from the home screen). Fetch the full receipt so items are present,
-  // then strip the param from the URL so refresh/back behaves naturally.
+  // (e.g. when the home screen routes Edit/Delete here). Fetch the full
+  // receipt so items are present, then strip the param. The ref guard makes
+  // this run exactly once — without it, StrictMode's double-invoke (or the
+  // param strip) would race and the modal would never open.
+  const deepLinkHandled = useRef(false);
   useEffect(() => {
+    if (deepLinkHandled.current) return;
     const receiptId = new URLSearchParams(window.location.search).get('receiptId');
     if (!receiptId) return;
-    let active = true;
+    deepLinkHandled.current = true;
     receiptsApi
       .getOne(receiptId)
-      .then((r) => { if (active) setDetailsReceipt(r); })
-      .catch(() => {});
-    window.history.replaceState(null, '', '/receipts');
-    return () => { active = false; };
+      .then((r) => setDetailsReceipt(r))
+      .catch(() => {})
+      .finally(() => window.history.replaceState(null, '', '/receipts'));
   }, []);
 
+  // Static list of the last 12 months — independent of loaded receipts so the
+  // date filter offers a full range even before data spanning those months is
+  // fetched (server applies the resulting date bounds).
   const availableMonths = useMemo(() => {
-    const set = new Set<string>();
-    receipts.forEach((r) => set.add(r.receiptDate.slice(0, 7)));
-    return Array.from(set).sort().reverse();
-  }, [receipts]);
+    const months: string[] = [];
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+    return months;
+  }, []);
 
-  const filtered = useMemo(() => {
-    return receipts.filter((r) => {
-      if (searchQuery.trim() && !r.store?.name?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-      if (filterYearMonth && !r.receiptDate.startsWith(filterYearMonth)) return false;
-      if (filterCategoryId && r.transactionCategoryId !== filterCategoryId) return false;
-      return true;
-    });
-  }, [receipts, searchQuery, filterYearMonth, filterCategoryId]);
+  // Day groups, derived from the (already date-desc sorted, server-filtered)
+  // receipts array. Sequential grouping — append via "Завантажити ще" naturally
+  // extends the last group; nothing is stored in state.
+  const dayGroups = useMemo(() => {
+    const groups: { key: string; label: string; receipts: ReceiptType[] }[] = [];
+    for (const r of receipts) {
+      const key = r.receiptDate.slice(0, 10);
+      const last = groups[groups.length - 1];
+      if (last && last.key === key) last.receipts.push(r);
+      else groups.push({ key, label: formatGroupLabel(r.receiptDate), receipts: [r] });
+    }
+    return groups;
+  }, [receipts]);
 
   const handleDelete = async (id: string) => {
     const result = await removeReceipt(id);
     if (!result.error) { setDetailsReceipt(null); setDeleteReceipt(null); }
     return result;
+  };
+
+  const hasActiveFilters =
+    debouncedSearch.trim() !== '' || filterYearMonth !== null || filterCategoryId !== null || filterStoreId !== null;
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setDebouncedSearch('');
+    setFilterYearMonth(null);
+    setFilterCategoryId(null);
+    setFilterStoreId(null);
   };
 
   const selectedMonthLabel = filterYearMonth ? formatMonthYear(filterYearMonth) : 'Будь-яка дата';
@@ -883,18 +842,31 @@ export default function ReceiptsPage() {
                       onClick={() => { setFilterCategoryId(c.id); setCatOpen(false); }}
                       className={`flex w-full items-center gap-2 px-4 py-2.5 text-left text-[13px] hover:bg-[#F7F7F7] ${filterCategoryId === c.id ? 'font-medium text-[#1a1a1a]' : 'text-[#6b7280]'}`}
                     >
-                      <TransactionCategoryBadge name={c.name} />
+                      <TransactionCategoryBadge category={c} />
                     </button>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Clear filters */}
-            {(filterYearMonth || filterCategoryId) && (
+            {/* Store filter chip (active when navigated from statistics) */}
+            {filterStoreId && (
               <button
                 type="button"
-                onClick={() => { setFilterYearMonth(null); setFilterCategoryId(null); }}
+                onClick={() => setFilterStoreId(null)}
+                className="flex h-[38px] items-center gap-1.5 rounded-lg border px-3 text-[13px] transition-colors"
+                style={{ borderColor: '#1a1a1a', backgroundColor: '#1a1a1a', color: 'white' }}
+              >
+                <span>{stores.find((s) => s.id === filterStoreId)?.name ?? 'Магазин'}</span>
+                <X size={13} />
+              </button>
+            )}
+
+            {/* Clear filters */}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
                 className="flex items-center gap-1 text-[12px] text-[#9ca3af] hover:text-[#1a1a1a]"
               >
                 <X size={12} />
@@ -916,20 +888,36 @@ export default function ReceiptsPage() {
             </div>
           )}
 
-          {/* Loading */}
+          {/* Loading — skeleton rows on first load */}
           {isLoading && receipts.length === 0 && (
-            <div className="flex justify-center py-16 text-[13px] text-gray-500">Завантаження...</div>
+            <div className="card-surface overflow-hidden rounded-[14px]">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 border-t border-[#ECECEF] px-4 py-3 first:border-t-0"
+                >
+                  <Skeleton className="h-[30px] w-[30px] flex-shrink-0 rounded-full" />
+                  <Skeleton className="h-[14px] w-[140px]" />
+                  <Skeleton className="h-[20px] w-[96px] rounded-full" />
+                  <div className="flex-1" />
+                  <Skeleton className="h-[14px] w-[72px]" />
+                </div>
+              ))}
+            </div>
           )}
 
-          {/* Empty state */}
-          {!isLoading && !error && receipts.length === 0 && (
-            <div className="flex flex-col items-center rounded-xl border border-[#e5e7eb] bg-white py-16">
-              <div className="mb-4 flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#F7F7F7]">
-                <Receipt size={24} color="#9ca3af" />
+          {/* Empty state — no receipts at all (no active filters) */}
+          {!isLoading && !error && receipts.length === 0 && !hasActiveFilters && (
+            <div className="card-surface flex flex-col items-center rounded-[14px] py-16">
+              <div
+                className="mb-4 flex h-[52px] w-[52px] items-center justify-center rounded-full"
+                style={{ backgroundColor: 'var(--brand-soft)' }}
+              >
+                <Receipt size={24} style={{ color: 'var(--brand)' }} />
               </div>
-              <h3 className="mb-2 text-[16px] font-medium text-[#1a1a1a]">Жодного чеку</h3>
+              <h3 className="mb-2 text-[16px] font-medium text-[#1a1a1a]">Тут з&apos;являться ваші чеки</h3>
               <p className="mb-6 max-w-xs text-center text-[14px] text-gray-500">
-                Додайте перший чек щоб почати відстежувати витрати
+                Сфотографуйте перший чек — ми розпізнаємо товари й порахуємо все за вас
               </p>
               <Button fullWidth={false} onClick={() => setShowAddChoice(true)}>
                 Додати чек
@@ -938,12 +926,12 @@ export default function ReceiptsPage() {
           )}
 
           {/* Table */}
-          {!error && filtered.length > 0 && (
-            <div className="overflow-hidden rounded-lg bg-white" style={{ border: '1px solid #e5e7eb' }}>
+          {!error && receipts.length > 0 && (
+            <div className="card-surface overflow-hidden rounded-[14px]">
               {/* Header */}
               <div
-                className="grid text-[11px] uppercase tracking-wide text-[#9ca3af]"
-                style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr 80px', backgroundColor: '#F7F7F7', padding: '10px 16px' }}
+                className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
+                style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr 80px', backgroundColor: 'var(--brand-soft, #E1F5EE)', padding: '10px 16px' }}
               >
                 <span>Магазин</span>
                 <span>Категорія</span>
@@ -953,66 +941,81 @@ export default function ReceiptsPage() {
                 <span className="text-right">Дії</span>
               </div>
 
-              {/* Rows */}
-              {filtered.map((receipt) => {
-                const storeName = receipt.store?.name ?? '—';
-                const color = storeColor(storeName);
-                return (
+              {/* Day groups */}
+              {dayGroups.map((group) => (
+                <div key={group.key}>
+                  {/* Group header */}
                   <div
-                    key={receipt.id}
-                    className="group grid cursor-pointer items-center border-t border-[#e5e7eb] px-4 py-3 hover:bg-[#FAFAFA]"
-                    style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr 80px' }}
-                    onClick={() => setDetailsReceipt(receipt)}
+                    className="border-t border-[#e5e7eb] text-[12px] font-medium uppercase tracking-wide"
+                    style={{ backgroundColor: '#F7F7F8', color: '#60646C', padding: '6px 16px' }}
                   >
-                    {/* Store */}
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full text-[13px] font-medium text-white"
-                        style={{ backgroundColor: color }}
-                      >
-                        {storeName.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="text-[14px] font-medium text-[#1a1a1a]">{storeName}</span>
-                    </div>
-
-                    {/* Transaction Category */}
-                    <div>
-                      <TransactionCategoryBadge name={receipt.transactionCategory?.name} />
-                    </div>
-
-                    {/* Payment Method */}
-                    <span className="text-[13px] text-[#6b7280]">
-                      {receipt.paymentMethod?.name ?? '—'}
-                    </span>
-
-                    {/* Date */}
-                    <span className="text-[13px] text-[#6b7280]">{formatShortDate(receipt.receiptDate)}</span>
-
-                    {/* Amount */}
-                    <span className="text-right text-[14px] font-medium text-[#1a1a1a]">
-                      {receipt.totalAmount} {receipt.currency}
-                    </span>
-
-                    {/* Actions */}
-                    <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
-                      <button type="button" onClick={() => setEditReceipt(receipt)} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#F7F7F7] hover:text-[#1a1a1a]">
-                        <Pencil size={13} />
-                      </button>
-                      <button type="button" onClick={() => setDeleteReceipt(receipt)} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#FCEBEB] hover:text-[#A32D2D]">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
+                    {group.label}
                   </div>
-                );
-              })}
+
+                  {/* Rows */}
+                  {group.receipts.map((receipt) => {
+                    const storeName = receipt.store?.name ?? '—';
+                    const storeC = receipt.store
+                      ? categoryColor(receipt.store.id)
+                      : { bg: '#F0F0F3', text: '#60646C' };
+                    return (
+                      <div
+                        key={receipt.id}
+                        className="group grid cursor-pointer items-center border-t border-[#e5e7eb] px-4 py-3 hover:bg-[#FAFAFB]"
+                        style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr 80px' }}
+                        onClick={() => setDetailsReceipt(receipt)}
+                      >
+                        {/* Store */}
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full text-[13px] font-medium"
+                            style={{ backgroundColor: storeC.bg, color: storeC.text }}
+                          >
+                            {storeName.charAt(0).toUpperCase()}
+                          </div>
+                          <span className="text-[14px] font-medium text-[#1a1a1a]">{storeName}</span>
+                        </div>
+
+                        {/* Transaction Category */}
+                        <div>
+                          <TransactionCategoryBadge category={receipt.transactionCategory} />
+                        </div>
+
+                        {/* Payment Method */}
+                        <span className="text-[13px] text-[#6b7280]">
+                          {receipt.paymentMethod?.name ?? '—'}
+                        </span>
+
+                        {/* Date */}
+                        <span className="text-[13px] text-[#6b7280]">{formatShortDate(receipt.receiptDate)}</span>
+
+                        {/* Amount */}
+                        <span className="tnum text-right text-[15px] font-semibold text-[#1a1a1a]">
+                          {receipt.totalAmount} {receipt.currency}
+                        </span>
+
+                        {/* Actions */}
+                        <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
+                          <button type="button" onClick={() => setEditReceipt(receipt)} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#F7F7F7] hover:text-[#1a1a1a]">
+                            <Pencil size={13} />
+                          </button>
+                          <button type="button" onClick={() => setDeleteReceipt(receipt)} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#FCEBEB] hover:text-[#A32D2D]">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           )}
 
           {/* No results after filter */}
-          {!error && receipts.length > 0 && filtered.length === 0 && (
+          {!isLoading && !error && receipts.length === 0 && hasActiveFilters && (
             <div className="flex flex-col items-center rounded-xl border border-[#e5e7eb] bg-white py-12">
               <p className="text-[14px] text-[#9ca3af]">Нічого не знайдено</p>
-              <button type="button" onClick={() => { setSearchQuery(''); setFilterYearMonth(null); setFilterCategoryId(null); }} className="mt-3 text-[13px] text-[#1a1a1a] underline hover:opacity-70">
+              <button type="button" onClick={clearFilters} className="mt-3 text-[13px] text-[#1a1a1a] underline hover:opacity-70">
                 Скинути фільтри
               </button>
             </div>
@@ -1026,7 +1029,7 @@ export default function ReceiptsPage() {
               </Button>
             </div>
           )}
-          {!hasMore && filtered.length > 0 && !isLoading && (
+          {!hasMore && receipts.length > 0 && !isLoading && (
             <p className="mt-4 text-center text-[13px] text-[#9ca3af]">Це всі ваші чеки</p>
           )}
         </div>
@@ -1041,7 +1044,7 @@ export default function ReceiptsPage() {
       )}
 
       {detailsReceipt && !editReceipt && !deleteReceipt && (
-        <DetailsModal
+        <ReceiptDetailsModal
           receipt={detailsReceipt}
           onClose={() => setDetailsReceipt(null)}
           onEdit={() => { setEditReceipt(detailsReceipt); setDetailsReceipt(null); }}

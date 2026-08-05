@@ -2,13 +2,19 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Camera, Receipt } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Camera, Pencil, Receipt, Upload } from 'lucide-react';
 import { TopNav } from '@/src/components/features/home/TopNav';
 import { Button } from '@/src/components/ui/Button';
+import { Skeleton } from '@/src/components/ui/Skeleton';
+import { categoryColor } from '@/src/lib/category-colors';
+import { ReceiptDetailsModal } from '@/src/components/features/receipts/ReceiptDetailsModal';
 import { useLogout } from '@/src/hooks/useAuth';
 import { authApi } from '@/src/api/auth.api';
 import { receiptsApi } from '@/src/api/receipts.api';
+import { statisticsApi } from '@/src/api/statistics.api';
 import type { Receipt as ReceiptType } from '@/src/types/receipt.types';
+import type { SummaryResponse } from '@/src/types/statistics.types';
 
 function getGreeting(now: Date): string {
   const hour = now.getHours();
@@ -48,35 +54,35 @@ function formatShortDate(iso: string): string {
   return `${d.getDate()} ${UK_MONTHS_SHORT[d.getMonth()]}`;
 }
 
-const CATEGORY_COLORS = [
-  { bg: '#DBEAFE', text: '#1D4ED8' },
-  { bg: '#D1FAE5', text: '#065F46' },
-  { bg: '#FEF3C7', text: '#92400E' },
-  { bg: '#FCE7F3', text: '#9D174D' },
-  { bg: '#EDE9FE', text: '#5B21B6' },
-  { bg: '#FFEDD5', text: '#C2410C' },
-];
-function categoryColor(name: string) {
-  return CATEGORY_COLORS[name.charCodeAt(0) % CATEGORY_COLORS.length];
-}
-
-const STORE_COLORS = ['#6366f1', '#f59e0b', '#8b5cf6', '#3b82f6', '#ef4444'];
-function storeColor(name: string): string {
-  return STORE_COLORS[name.charCodeAt(0) % STORE_COLORS.length];
-}
-
-function CategoryBadge({ name }: { name: string | null | undefined }) {
-  if (!name) return <span className="text-[12px] text-[#9ca3af]">—</span>;
-  const { bg, text } = categoryColor(name);
+function CategoryBadge({ category }: { category: { id: string; name: string } | null | undefined }) {
+  if (!category) return <span className="text-[12px] text-[#9ca3af]">—</span>;
+  const { bg, text } = categoryColor(category.id);
   return (
     <span
       className="rounded-full px-2 py-0.5 text-[12px] font-medium"
       style={{ backgroundColor: bg, color: text }}
     >
-      {name}
+      {category.name}
     </span>
   );
 }
+
+const QUICK_ACTIONS = [
+  {
+    href: '/receipts/upload',
+    label: 'Завантажити чек',
+    Icon: Upload,
+    iconBg: '#E1F5EE',
+    iconColor: '#0F6E56',
+  },
+  {
+    href: '/receipts/upload/manual',
+    label: 'Ввести вручну',
+    Icon: Pencil,
+    iconBg: '#F0F0F3',
+    iconColor: '#1a1a1a',
+  },
+] as const;
 
 function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
   return (
@@ -107,8 +113,16 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
 }
 
 export default function HomePage() {
+  const router = useRouter();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { logout } = useLogout();
+
+  // Receipt opened in place on the home screen (no navigation to /receipts).
+  const [detailsReceipt, setDetailsReceipt] = useState<ReceiptType | null>(null);
+  const openReceipt = (id: string) => {
+    // Fetch the full receipt so the details modal has its items.
+    receiptsApi.getOne(id).then(setDetailsReceipt).catch(() => {});
+  };
 
   const [userName, setUserName] = useState<string | null>(null);
   const [receipts, setReceipts] = useState<ReceiptType[]>([]);
@@ -124,7 +138,7 @@ export default function HomePage() {
     authApi.me().then((u) => setUserName(u.name)).catch(() => {});
   }, []);
 
-  const [receiptsTotal, setReceiptsTotal] = useState(0);
+  const [summary, setSummary] = useState<SummaryResponse | null>(null);
 
   useEffect(() => {
     const today = new Date();
@@ -136,22 +150,25 @@ export default function HomePage() {
 
     setReceiptsLoading(true);
     receiptsApi
-      .getAll(1, 20, { dateFrom, dateTo })
+      .getAll({ page: 1, limit: 20, dateFrom, dateTo })
       .then((res) => {
         setReceipts(res.data);
-        setReceiptsTotal(res.total);
         setReceiptsLoading(false);
       })
       .catch(() => { setReceiptsError(true); setReceiptsLoading(false); });
+
+    statisticsApi
+      .getSummary({ dateFrom, dateTo })
+      .then(setSummary)
+      .catch(() => {});
   }, []);
 
-  // Receipts are already scoped to the current month server-side.
   const monthlyStats = useMemo(
     () => ({
-      total: receipts.reduce((sum, r) => sum + Number(r.totalAmount ?? 0), 0),
-      count: receiptsTotal,
+      total: summary?.totalAmount ?? 0,
+      count: summary?.receiptsCount ?? 0,
     }),
-    [receipts, receiptsTotal],
+    [summary],
   );
 
   const recentReceipts = receipts.slice(0, 5);
@@ -170,22 +187,57 @@ export default function HomePage() {
           <p className="mt-1 text-[14px] text-gray-500">{now ? formatDate(now) : ' '}</p>
         </div>
 
-        {/* Stats */}
-        <div className="mb-8 grid grid-cols-2 gap-4">
-          <div className="rounded-xl border border-[#e5e7eb] p-5">
-            <p className="text-[12px] uppercase tracking-wide text-gray-400">
-              Витрати у {now ? getCurrentMonth(now) : ' '}
+        {/* Hero card — spent this month (web-design-refresh §5) */}
+        {summary === null ? (
+          <Skeleton className="h-[120px] w-full" style={{ borderRadius: 16 }} />
+        ) : (
+          <div
+            className="flex flex-wrap items-end justify-between gap-4"
+            style={{
+              // Solid brand fallback under the gradient so white text stays
+              // readable even if the CSS variable hasn't loaded (stale dev CSS).
+              backgroundColor: '#0F6E56',
+              backgroundImage: 'var(--brand-gradient)',
+              borderRadius: 16,
+              padding: 24,
+            }}
+          >
+            <div>
+              <p className="text-[13px]" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                Витрачено у {now ? getCurrentMonth(now) : ' '}
+              </p>
+              <p className="tnum mt-1 text-[32px] font-semibold leading-tight text-white">
+                {Math.trunc(monthlyStats.total)}
+                <span className="text-[20px] font-semibold" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                  .{monthlyStats.total.toFixed(2).split('.')[1]} ₴
+                </span>
+              </p>
+            </div>
+            <p className="tnum text-[12px]" style={{ color: 'rgba(255,255,255,0.75)' }}>
+              {monthlyStats.count} чеків · середній{' '}
+              {(summary?.avgAmount ?? 0).toFixed(2)} ₴
             </p>
-            <p className="mt-2 text-[28px] font-medium">{monthlyStats.total.toFixed(2)} ₴</p>
-            <p className="mt-1 text-[13px] text-gray-500">за поточний місяць</p>
           </div>
-          <div className="rounded-xl border border-[#e5e7eb] p-5">
-            <p className="text-[12px] uppercase tracking-wide text-gray-400">
-              Кількість чеків
-            </p>
-            <p className="mt-2 text-[28px] font-medium">{monthlyStats.count}</p>
-            <p className="mt-1 text-[13px] text-gray-500">за поточний місяць</p>
-          </div>
+        )}
+
+        {/* Quick actions */}
+        <div className="mb-8 mt-4 grid grid-cols-2 gap-3">
+          {QUICK_ACTIONS.map(({ href, label, Icon, iconBg, iconColor }) => (
+            <Link
+              key={href}
+              href={href}
+              className="card-surface card-hover flex flex-col items-center gap-2.5 px-4 py-5"
+              style={{ borderRadius: 14 }}
+            >
+              <div
+                className="flex h-[40px] w-[40px] items-center justify-center"
+                style={{ backgroundColor: iconBg, borderRadius: 10 }}
+              >
+                <Icon size={20} color={iconColor} />
+              </div>
+              <span className="text-[13px] font-medium text-[#1a1a1a]">{label}</span>
+            </Link>
+          ))}
         </div>
 
         {/* Recent receipts header */}
@@ -203,8 +255,10 @@ export default function HomePage() {
         )}
 
         {!receiptsError && receiptsLoading && (
-          <div className="flex justify-center py-12 text-[13px] text-gray-500">
-            Завантаження...
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-[48px] w-full" />
+            <Skeleton className="h-[48px] w-full" />
+            <Skeleton className="h-[48px] w-full" />
           </div>
         )}
 
@@ -229,8 +283,8 @@ export default function HomePage() {
           <div className="overflow-hidden rounded-xl border border-[#e5e7eb] bg-white">
             {/* Table header */}
             <div
-              className="grid text-[11px] uppercase tracking-wide text-[#9ca3af]"
-              style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr', backgroundColor: '#F7F7F7', padding: '10px 16px' }}
+              className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
+              style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr', backgroundColor: 'var(--brand-soft, #E1F5EE)', padding: '10px 16px' }}
             >
               <span>Магазин</span>
               <span>Категорія</span>
@@ -241,38 +295,50 @@ export default function HomePage() {
 
             {recentReceipts.map((receipt) => {
               const storeName = receipt.store?.name ?? '—';
-              const color = storeColor(storeName);
+              const storeTint = categoryColor(receipt.store?.id);
               return (
-                <Link
+                <div
                   key={receipt.id}
-                  href={`/receipts?receiptId=${receipt.id}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openReceipt(receipt.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') openReceipt(receipt.id); }}
                   className="grid cursor-pointer items-center border-t border-[#e5e7eb] px-4 py-3 hover:bg-[#FAFAFA]"
                   style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr' }}
                 >
                   <div className="flex items-center gap-2">
                     <div
-                      className="flex h-[28px] w-[28px] flex-shrink-0 items-center justify-center rounded-full text-[12px] font-medium text-white"
-                      style={{ backgroundColor: color }}
+                      className="flex h-[28px] w-[28px] flex-shrink-0 items-center justify-center rounded-full text-[12px] font-medium"
+                      style={{ backgroundColor: storeTint.bg, color: storeTint.text }}
                     >
                       {storeName.charAt(0).toUpperCase()}
                     </div>
                     <span className="text-[14px] font-medium text-[#1a1a1a]">{storeName}</span>
                   </div>
                   <div>
-                    <CategoryBadge name={receipt.transactionCategory?.name} />
+                    <CategoryBadge category={receipt.transactionCategory} />
                   </div>
                   <span className="text-[13px] text-[#6b7280]">{formatShortDate(receipt.receiptDate)}</span>
                   <span className="text-[13px] text-[#6b7280]">{receipt.paymentMethod?.name ?? '—'}</span>
-                  <span className="text-right text-[14px] font-medium text-[#1a1a1a]">
+                  <span className="tnum text-right text-[15px] font-semibold text-[#1a1a1a]">
                     {receipt.totalAmount} {receipt.currency}
                   </span>
-                </Link>
+                </div>
               );
             })}
           </div>
         )}
         </div>
       </main>
+
+      {detailsReceipt && (
+        <ReceiptDetailsModal
+          receipt={detailsReceipt}
+          onClose={() => setDetailsReceipt(null)}
+          onEdit={() => router.push(`/receipts?receiptId=${detailsReceipt.id}`)}
+          onDelete={() => router.push(`/receipts?receiptId=${detailsReceipt.id}`)}
+        />
+      )}
 
       {showLogoutModal && (
         <LogoutModal

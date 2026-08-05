@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   X,
@@ -28,6 +28,7 @@ import { receiptsApi } from '@/src/api/receipts.api';
 import { extractPdfPagesAsImages } from '@/src/lib/pdf-to-images';
 import type { ParsedReceiptDto, ParsedItem, CreateReceiptItemDto } from '@/src/types/receipt.types';
 import type { ItemCategory } from '@/src/types/item-category.types';
+import { useCountUp } from '@/src/hooks/useCountUp';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,9 @@ const PDF_TYPE = 'application/pdf';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const MAX_PHOTOS = 10;
 const UNITS = ['шт', 'кг', 'л', 'м', 'г'];
+
+/** Rotating hint messages shown while the LLM parses the photos. */
+const PARSE_HINTS = ['Шукаємо товари…', 'Рахуємо суми…', 'Підбираємо категорії…', 'Ще трохи…'];
 
 type PhotoStatus = 'waiting' | 'processing' | 'done' | 'error';
 
@@ -111,6 +115,28 @@ function ItemCategoryBadge({ name }: { name: string | null | undefined }) {
     <span className="rounded-full bg-[#F7F7F7] px-2 py-0.5 text-[11px] text-[#6b7280]">
       {name}
     </span>
+  );
+}
+
+// ─── Success summary line (count-up) ──────────────────────────────────────────
+
+/** Ukrainian plural form: 1 товар, 2 товари, 5 товарів. */
+function itemsWord(n: number): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return 'товар';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return 'товари';
+  return 'товарів';
+}
+
+function SuccessAddedLine({ count, total }: { count: number; total: number }) {
+  const animated = useCountUp(total);
+  return (
+    <p className="mb-2 flex items-baseline justify-center gap-1.5 text-[14px] text-[#60646C]">
+      Додано {count} {itemsWord(count)} на
+      <span className="tnum text-[24px] font-semibold text-[#1a1a1a]">{animated.toFixed(2)}</span>
+      <span className="font-medium text-[#1a1a1a]">₴</span>
+    </p>
   );
 }
 
@@ -415,8 +441,8 @@ function ItemsEditor({ items, itemCategories, onCreateCategory, currency, onChan
       <div className="overflow-hidden rounded-lg border border-[#e5e7eb] bg-white">
         {/* Header */}
         <div
-          className="grid text-[11px] uppercase tracking-wide text-[#9ca3af]"
-          style={{ gridTemplateColumns: '3fr 1fr 1fr 1fr 60px 64px', padding: '8px 12px', backgroundColor: '#F7F7F7' }}
+          className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
+          style={{ gridTemplateColumns: '3fr 1fr 1fr 1fr 60px 64px', padding: '8px 12px', backgroundColor: 'var(--brand-soft, #E1F5EE)' }}
         >
           <span>Назва</span>
           <span>Кат.</span>
@@ -586,6 +612,18 @@ export default function ReceiptUploadPage() {
   const [isParsing, setIsParsing] = useState(false);
   const [parseResult, setParseResult] = useState<ParsedReceiptDto | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
+
+  // Rotating hint under the "Розпізнаємо чек..." title (presentation only).
+  const [parseHintIdx, setParseHintIdx] = useState(0);
+  useEffect(() => {
+    if (!isParsing) return;
+    setParseHintIdx(0);
+    const timer = setInterval(
+      () => setParseHintIdx((i) => (i + 1) % PARSE_HINTS.length),
+      2200,
+    );
+    return () => clearInterval(timer);
+  }, [isParsing]);
 
   // Step 3 — meta form (all optional)
   const [storeId, setStoreId] = useState<string | null>(null);
@@ -788,7 +826,6 @@ export default function ReceiptUploadPage() {
   // ── Step 3 submit ────────────────────────────────────────────────────────────
 
   const handleConfirm = async () => {
-    if (items.length === 0) return;
     setIsSubmitting(true);
     setConfirmError(null);
     try {
@@ -931,7 +968,7 @@ export default function ReceiptUploadPage() {
                     <div className="flex-1">
                       <p className="text-[13px] text-[#1a1a1a]">Додати ще фото</p>
                       <p className="text-[12px] text-[#9ca3af]">
-                        Сфотографувати або вибрати з галереї
+                        Виберіть файли або перетягніть сюди
                       </p>
                     </div>
                     <span className="text-[12px] text-[#9ca3af]">
@@ -991,6 +1028,45 @@ export default function ReceiptUploadPage() {
           {/* ── Step 2: Processing (mobile-style: spinner only, auto-advance) ─ */}
           {step === 2 && (
             <div className="mx-auto w-full max-w-xl">
+              {/* Photo thumbnails strip with scan-line animation on processing */}
+              <div className="mb-4 flex flex-wrap items-center justify-center" style={{ gap: 8 }}>
+                {photos.map((p, idx) => (
+                  <div
+                    key={p.id}
+                    className="relative overflow-hidden bg-[#1a1a1a]"
+                    style={{ width: 48, height: 64, borderRadius: 8 }}
+                  >
+                    <img
+                      src={p.previewUrl}
+                      alt={`Фото ${idx + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                    {p.status === 'processing' && (
+                      <>
+                        <div className="scanline" />
+                        <div className="shimmer absolute inset-0" />
+                      </>
+                    )}
+                    {p.status === 'done' && (
+                      <span
+                        className="absolute bottom-1 right-1 flex h-4 w-4 items-center justify-center rounded-full"
+                        style={{ backgroundColor: '#EAF3DE' }}
+                      >
+                        <Check size={10} color="#3B6D11" strokeWidth={3} />
+                      </span>
+                    )}
+                    {p.status === 'error' && (
+                      <span
+                        className="absolute bottom-1 right-1 flex h-4 w-4 items-center justify-center rounded-full"
+                        style={{ backgroundColor: '#FCEBEB' }}
+                      >
+                        <X size={10} color="#A32D2D" strokeWidth={3} />
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
               <div className="rounded-xl bg-white p-5" style={{ border: '0.5px solid #e5e7eb' }}>
                 <div className="mb-1 flex items-center justify-center gap-2">
                   {isParsing ? (
@@ -1005,6 +1081,14 @@ export default function ReceiptUploadPage() {
                     {isParsing ? 'Розпізнаємо чек...' : 'Обробку завершено'}
                   </span>
                 </div>
+                {isParsing && (
+                  <p
+                    key={parseHintIdx}
+                    className="fade-swap mb-1 text-center text-[12px] text-[#60646C]"
+                  >
+                    {PARSE_HINTS[parseHintIdx]}
+                  </p>
+                )}
                 <p className="mb-4 text-center text-[12px] text-[#9ca3af]">
                   зазвичай 5–15 секунд
                 </p>
@@ -1017,7 +1101,7 @@ export default function ReceiptUploadPage() {
                           ? 0
                           : (photos.filter((p) => p.status === 'done' || p.status === 'error').length / photos.length) * 100
                       }%`,
-                      backgroundColor: '#1a1a1a',
+                      backgroundColor: 'var(--brand)',
                     }}
                   />
                 </div>
@@ -1327,7 +1411,6 @@ export default function ReceiptUploadPage() {
                 <Button
                   fullWidth={false}
                   isLoading={isSubmitting}
-                  disabled={items.length === 0}
                   icon={<CheckCircle2 size={15} />}
                   className="py-2 px-6 text-[13px]"
                   onClick={handleConfirm}
@@ -1344,12 +1427,16 @@ export default function ReceiptUploadPage() {
           {step === 4 && (
             <div className="flex flex-col items-center py-8">
               <div
-                className="mb-5 flex h-16 w-16 items-center justify-center rounded-full"
+                className="pop-in mb-5 flex h-16 w-16 items-center justify-center rounded-full"
                 style={{ backgroundColor: '#EAF3DE' }}
               >
                 <Check size={32} color="#3B6D11" />
               </div>
               <h2 className="mb-2 text-[20px] font-medium">Чек збережено</h2>
+              <SuccessAddedLine
+                count={items.length}
+                total={Math.round(computedTotal * 100) / 100}
+              />
               <p className="mb-8 text-[14px] text-[#6b7280]">
                 Товари додано до вашої статистики витрат
               </p>

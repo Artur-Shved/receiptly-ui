@@ -1,6 +1,8 @@
 'use client';
 
 import { ChevronRight } from 'lucide-react';
+import { Skeleton } from '@/src/components/ui/Skeleton';
+import { chartColorScale } from '@/src/lib/category-colors';
 import type { BreakdownItem } from '@/src/types/statistics.types';
 
 interface Props {
@@ -31,13 +33,12 @@ export function BreakdownSection({
 }: Props) {
   const hasMore = items != null && items.length > maxRows;
   const visible = items?.slice(0, maxRows) ?? [];
+  // Scale over the FULL list so the top-5 view and the show-all view agree.
+  const barColor = chartColorScale((items ?? []).map((i) => i.id));
   const maxAmount = visible.length > 0 ? Math.max(...visible.map((i) => i.totalAmount)) : 0;
 
   return (
-    <div
-      className="overflow-hidden rounded-xl bg-white"
-      style={{ border: '0.5px solid #e5e7eb' }}
-    >
+    <div className="card-surface overflow-hidden rounded-[14px]">
       <div className="flex items-center justify-between border-b border-[#e5e7eb] px-4 py-3">
         <p className="text-[13px] font-medium text-[#1a1a1a]">{title}</p>
         {hasMore && onShowAll && (
@@ -54,7 +55,7 @@ export function BreakdownSection({
       {isLoading && !items && (
         <div className="px-4 py-6">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="mb-3 h-9 rounded bg-[#F7F7F7]" />
+            <Skeleton key={i} className="mb-3 h-9 w-full" />
           ))}
         </div>
       )}
@@ -76,19 +77,19 @@ export function BreakdownSection({
           >
             <div className="flex items-center justify-between">
               <span className="truncate text-[13px] text-[#1a1a1a]">{item.name}</span>
-              <span className="text-[13px] font-medium text-[#1a1a1a]">
+              <span className="tnum text-[13px] font-medium text-[#1a1a1a]">
                 {fmtMoney(item.totalAmount)}
               </span>
             </div>
             <div className="mt-1.5 h-[3px] w-full overflow-hidden rounded-full bg-[#F0F0F0]">
               <div
                 className="h-full"
-                style={{ width: `${barPct}%`, backgroundColor: '#1a1a1a' }}
+                style={{ width: `${barPct}%`, backgroundColor: barColor(item.id) }}
               />
             </div>
             <div className="mt-1 flex justify-between text-[11px] text-[#9ca3af]">
               <span>{countSuffix(item.count)}</span>
-              <span>{item.percentage.toFixed(1)}%</span>
+              <span className="tnum">{item.percentage.toFixed(1)}%</span>
             </div>
           </button>
         );

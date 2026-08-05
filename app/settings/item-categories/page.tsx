@@ -62,7 +62,7 @@ function CreateModal({ onClose, onCreate }: CreateModalProps) {
       >
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-[16px] font-medium">Нова категорія товару</h2>
+          <h2 className="text-[16px] font-medium text-[#1a1a1a]">Нова категорія товару</h2>
           <button
             type="button"
             onClick={onClose}
@@ -151,7 +151,7 @@ function EditModal({ category, onClose, onUpdate }: EditModalProps) {
       >
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-[16px] font-medium">Редагувати категорію</h2>
+          <h2 className="text-[16px] font-medium text-[#1a1a1a]">Редагувати категорію</h2>
           <button
             type="button"
             onClick={onClose}
@@ -231,7 +231,7 @@ function DeleteModal({ category, itemsCount, onClose, onConfirm }: DeleteModalPr
       >
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-[16px] font-medium">Видалити категорію?</h2>
+          <h2 className="text-[16px] font-medium text-[#1a1a1a]">Видалити категорію?</h2>
           <button
             type="button"
             onClick={onClose}
@@ -482,13 +482,13 @@ export default function ItemCategoriesPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Пошук категорії..."
-            className="h-[38px] w-full rounded-lg border border-[#e5e7eb] bg-white pl-[34px] pr-3 text-[13px] outline-none transition-colors focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
+            className="h-[38px] w-full rounded-lg border border-[#e5e7eb] bg-white pl-[34px] pr-3 text-[13px] text-[#1a1a1a] placeholder:text-[#9ca3af] outline-none transition-colors focus:border-[#1a1a1a] focus:ring-1 focus:ring-[#1a1a1a]"
           />
         </div>
       </div>
 
       {isLoading ? (
-        <div className="mt-5 flex items-center justify-center py-12 text-[13px] text-gray-400">
+        <div className="mt-5 flex items-center justify-center py-12 text-[13px] text-gray-500">
           Завантаження...
         </div>
       ) : (
@@ -497,7 +497,7 @@ export default function ItemCategoriesPage() {
           <div className="mt-5">
             <SectionBlock title="Системні" count={systemCategories.length}>
               {systemCategories.length === 0 ? (
-                <div className="px-4 py-8 text-center text-[13px] text-gray-400">
+                <div className="px-4 py-8 text-center text-[13px] text-gray-500">
                   Немає системних категорій
                 </div>
               ) : (
