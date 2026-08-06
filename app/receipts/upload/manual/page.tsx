@@ -51,7 +51,7 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
       style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
       onClick={onCancel}
     >
-      <div className="w-[400px] rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-[400px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <h2 className="mb-2 text-[18px] font-medium">Вийти з акаунту?</h2>
         <p className="mb-6 text-[14px] text-gray-500">
           Вас буде перенаправлено на стартовий екран. Дані збережуться.
@@ -593,7 +593,7 @@ export default function ManualReceiptPage() {
               ) : (
                 <div className="overflow-hidden rounded-lg border border-[#e5e7eb]">
                   <div
-                    className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
+                    className="hidden text-[11px] uppercase tracking-wide text-[#0F6E56] sm:grid"
                     style={{ gridTemplateColumns: '3fr 1.2fr 1fr 1fr 56px', padding: '8px 12px', backgroundColor: 'var(--brand-soft, #E1F5EE)' }}
                   >
                     <span>Назва</span>
@@ -609,29 +609,33 @@ export default function ManualReceiptPage() {
                     return (
                       <div
                         key={item._key}
-                        className="grid items-center border-t border-[#e5e7eb]"
-                        style={{ gridTemplateColumns: '3fr 1.2fr 1fr 1fr 56px', padding: '8px 12px' }}
+                        className="flex flex-col gap-1.5 border-t border-[#e5e7eb] p-3 sm:grid sm:items-center sm:gap-0 sm:p-2 sm:px-3"
+                        style={{ gridTemplateColumns: '3fr 1.2fr 1fr 1fr 56px' }}
                       >
-                        <span className="text-[13px] text-[#1a1a1a]">{item.name}</span>
-                        <span className="text-[12px] text-[#6b7280]">{catName ?? 'Без кат.'}</span>
-                        <span className="text-[13px] text-[#6b7280]">
-                          {item.quantity}{item.unit ? ` ${item.unit}` : ''}
-                        </span>
-                        <span className="text-right text-[13px] font-medium text-[#1a1a1a]">
-                          {(() => {
-                            const d = item.discountAmount ?? 0;
-                            const final = Math.max(0, round2(item.originalAmount - d));
-                            return d > 0 ? (
-                              <span className="flex flex-col items-end leading-tight">
-                                <span className="text-[10px] text-[#9ca3af] line-through">{item.originalAmount}</span>
-                                <span>{final} ₴</span>
-                              </span>
-                            ) : (
-                              <>{final} ₴</>
-                            );
-                          })()}
-                        </span>
-                        <div className="flex justify-end gap-1">
+                        <div className="flex items-center justify-between gap-2 sm:contents">
+                          <span className="text-[13px] text-[#1a1a1a]">{item.name}</span>
+                          <span className="order-4 text-right text-[13px] font-medium text-[#1a1a1a]">
+                            {(() => {
+                              const d = item.discountAmount ?? 0;
+                              const final = Math.max(0, round2(item.originalAmount - d));
+                              return d > 0 ? (
+                                <span className="flex flex-col items-end leading-tight">
+                                  <span className="text-[10px] text-[#9ca3af] line-through">{item.originalAmount}</span>
+                                  <span>{final} ₴</span>
+                                </span>
+                              ) : (
+                                <>{final} ₴</>
+                              );
+                            })()}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:contents">
+                          <span className="text-[12px] text-[#6b7280]">{catName ?? 'Без кат.'}</span>
+                          <span className="text-[13px] text-[#6b7280]">
+                            {item.quantity}{item.unit ? ` ${item.unit}` : ''}
+                          </span>
+                        </div>
+                        <div className="order-5 flex justify-end gap-1">
                           <button
                             type="button"
                             onClick={() => setSubModalItem(item)}
@@ -868,7 +872,7 @@ export default function ManualReceiptPage() {
           style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
           onClick={() => setConfirmCancel(false)}
         >
-          <div className="w-[400px] rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-[400px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <h2 className="mb-2 text-[16px] font-medium">Скасувати введення?</h2>
             <p className="mb-6 text-[13px] text-gray-500">
               Дані будуть втрачені. Повернутись до вибору способу додавання?

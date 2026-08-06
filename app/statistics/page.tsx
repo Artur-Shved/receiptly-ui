@@ -37,7 +37,7 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
       style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
       onClick={onCancel}
     >
-      <div className="w-[400px] rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-[400px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <h2 className="mb-2 text-[18px] font-medium">Вийти з акаунту?</h2>
         <p className="mb-6 text-[14px] text-gray-500">
           Вас буде перенаправлено на стартовий екран. Дані збережуться.
@@ -176,14 +176,14 @@ export default function StatisticsPage() {
       <main className="flex-1 bg-[#F7F7F7]">
         <div className="mx-auto w-full" style={{ maxWidth: 1024, padding: 24 }}>
           {/* Header */}
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h1 className="text-[18px] font-medium text-[#1a1a1a]">Статистика</h1>
               <p className="mt-0.5 text-[13px] text-gray-500">
                 Аналіз витрат за обраний період
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <PeriodTabs
                 period={period}
                 dateFrom={dateFrom}
@@ -252,7 +252,7 @@ export default function StatisticsPage() {
                 <StatsGrid summary={summary} isLoading={isLoading} />
               </div>
 
-              <div className="mt-4 grid gap-4" style={{ gridTemplateColumns: '1fr 1.6fr' }}>
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[1fr_1.6fr]">
                 <DonutChart
                   data={byTxCat?.items ?? null}
                   totalAmount={byTxCat?.totalAmount ?? 0}
@@ -300,7 +300,7 @@ export default function StatisticsPage() {
                   />
                 )}
                 {allView === null && (
-                  <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <BreakdownSection
                       title="По категоріях"
                       items={byTxCat?.items ?? null}

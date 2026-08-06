@@ -57,7 +57,7 @@ function CreateModal({ onClose, onCreate }: CreateModalProps) {
       onClick={onClose}
     >
       <div
-        className="w-[400px] rounded-xl bg-white p-6 shadow-xl"
+        className="w-[400px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
@@ -143,7 +143,7 @@ function EditModal({ store, onClose, onUpdate }: EditModalProps) {
       onClick={onClose}
     >
       <div
-        className="w-[400px] rounded-xl bg-white p-6 shadow-xl"
+        className="w-[400px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
@@ -220,7 +220,7 @@ function DeleteModal({ store, receiptsCount, onClose, onConfirm }: DeleteModalPr
       onClick={onClose}
     >
       <div
-        className="w-[400px] rounded-xl bg-white p-6 shadow-xl"
+        className="w-[400px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -316,7 +316,7 @@ function StoreRow({ store, isSystem, onEdit, onDelete }: StoreRowProps) {
         <span className="text-[12px] text-[#9ca3af]">Додано вами</span>
       )}
 
-      <div className="flex gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+      <div className="flex gap-1 opacity-100 transition-opacity duration-150 md:opacity-0 md:group-hover:opacity-100">
         {isSystem ? (
           <button
             type="button"
@@ -442,7 +442,7 @@ export default function StoresPage() {
         </div>
       )}
 
-      <div className="mt-4" style={{ width: '260px' }}>
+      <div className="mt-4 w-full sm:w-[260px]">
         <div className="relative">
           <Search
             size={15}

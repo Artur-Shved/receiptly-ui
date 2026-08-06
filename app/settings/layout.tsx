@@ -19,7 +19,7 @@ function LogoutModal({ onConfirm, onCancel }: LogoutModalProps) {
       onClick={onCancel}
     >
       <div
-        className="w-[400px] rounded-xl bg-white p-6 shadow-xl"
+        className="w-[400px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="mb-2 text-[18px] font-medium">Вийти з акаунту?</h2>
@@ -52,10 +52,10 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     <div className="flex min-h-screen flex-col">
       <TopNav onLogoutClick={() => setShowLogoutModal(true)} />
 
-      <div className="flex flex-1">
+      <div className="flex flex-1 flex-col md:flex-row">
         <SettingsSidebar />
 
-        <main className="flex-1 bg-[#F7F7F7] p-6">
+        <main className="flex-1 bg-[#F7F7F7] p-4 sm:p-6">
           {children}
         </main>
       </div>

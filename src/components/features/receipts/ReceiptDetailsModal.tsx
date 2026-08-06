@@ -88,7 +88,7 @@ export function ReceiptDetailsModal({ receipt, onClose, onEdit, onDelete }: Rece
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5">
           {/* Meta grid */}
-          <div className="mb-5 grid grid-cols-2 gap-3">
+          <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {[
               { label: 'Магазин', value: storeName },
               { label: 'Дата покупки', value: formatFullDate(receipt.receiptDate) },
@@ -106,7 +106,7 @@ export function ReceiptDetailsModal({ receipt, onClose, onEdit, onDelete }: Rece
           <p className="mb-3 text-[12px] uppercase tracking-wide text-[#9ca3af]">Товари</p>
           <div className="overflow-hidden rounded-lg border border-[#e5e7eb]">
             <div
-              className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
+              className="hidden text-[11px] uppercase tracking-wide text-[#0F6E56] sm:grid"
               style={{ gridTemplateColumns: '3fr 1fr 1fr 1fr 60px', padding: '8px 12px', backgroundColor: 'var(--brand-soft, #E1F5EE)' }}
             >
               <span>Назва</span><span>Кат.</span><span>К-сть</span><span>Ціна/од</span>
@@ -118,24 +118,28 @@ export function ReceiptDetailsModal({ receipt, onClose, onEdit, onDelete }: Rece
             {(receipt.items ?? []).map((item) => (
               <div
                 key={item.id}
-                className="grid border-t border-[#e5e7eb]"
-                style={{ gridTemplateColumns: '3fr 1fr 1fr 1fr 60px', padding: '8px 12px' }}
+                className="flex flex-col gap-1 border-t border-[#e5e7eb] p-3 first:border-t-0 sm:grid sm:items-center sm:gap-0 sm:p-2 sm:px-3"
+                style={{ gridTemplateColumns: '3fr 1fr 1fr 1fr 60px' }}
               >
-                <span className="text-[13px] text-[#1a1a1a]">{item.name}</span>
-                <span><ItemCategoryBadge id={item.itemCategory?.id} name={item.itemCategory?.name} /></span>
-                <span className="text-[13px] text-[#6b7280]">{item.quantity}{item.unit ? ` ${item.unit}` : ''}</span>
-                <span className="text-[13px] text-[#6b7280]">{item.pricePerUnit} {receipt.currency}</span>
-                <span className="text-right text-[13px] text-[#1a1a1a]">
-                  {item.discountAmount > 0 ? (
-                    <span className="flex flex-col items-end leading-tight">
-                      <span className="text-[11px] text-[#9ca3af] line-through">{item.originalAmount} {receipt.currency}</span>
-                      <span className="text-[11px]" style={{ color: '#A32D2D' }}>−{item.discountAmount} {receipt.currency}</span>
-                      <span className="font-medium">{item.totalPrice} {receipt.currency}</span>
-                    </span>
-                  ) : (
-                    <>{item.totalPrice} {receipt.currency}</>
-                  )}
-                </span>
+                <div className="flex items-center justify-between gap-2 sm:contents">
+                  <span className="text-[13px] text-[#1a1a1a]">{item.name}</span>
+                  <span className="order-5 text-right text-[13px] text-[#1a1a1a]">
+                    {item.discountAmount > 0 ? (
+                      <span className="flex flex-col items-end leading-tight">
+                        <span className="text-[11px] text-[#9ca3af] line-through">{item.originalAmount} {receipt.currency}</span>
+                        <span className="text-[11px]" style={{ color: '#A32D2D' }}>−{item.discountAmount} {receipt.currency}</span>
+                        <span className="font-medium">{item.totalPrice} {receipt.currency}</span>
+                      </span>
+                    ) : (
+                      <>{item.totalPrice} {receipt.currency}</>
+                    )}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:contents">
+                  <span><ItemCategoryBadge id={item.itemCategory?.id} name={item.itemCategory?.name} /></span>
+                  <span className="text-[13px] text-[#6b7280]">{item.quantity}{item.unit ? ` ${item.unit}` : ''}</span>
+                  <span className="text-[13px] text-[#6b7280]">{item.pricePerUnit} {receipt.currency}</span>
+                </div>
               </div>
             ))}
           </div>

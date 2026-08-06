@@ -78,7 +78,7 @@ function LogoutModal({ onConfirm, onCancel }: LogoutModalProps) {
       onClick={onCancel}
     >
       <div
-        className="w-[400px] rounded-xl bg-white p-6 shadow-xl"
+        className="w-[400px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="mb-2 text-[18px] font-medium">Вийти з акаунту?</h2>
@@ -439,9 +439,9 @@ function ItemsEditor({ items, itemCategories, onCreateCategory, currency, onChan
   return (
     <>
       <div className="overflow-hidden rounded-lg border border-[#e5e7eb] bg-white">
-        {/* Header */}
+        {/* Header — desktop only; mobile renders stacked cards instead */}
         <div
-          className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
+          className="hidden text-[11px] uppercase tracking-wide text-[#0F6E56] sm:grid"
           style={{ gridTemplateColumns: '3fr 1fr 1fr 1fr 60px 64px', padding: '8px 12px', backgroundColor: 'var(--brand-soft, #E1F5EE)' }}
         >
           <span>Назва</span>
@@ -460,52 +460,56 @@ function ItemsEditor({ items, itemCategories, onCreateCategory, currency, onChan
           return (
             <div
               key={item._key}
-              className="grid items-center border-t border-[#e5e7eb]"
-              style={{ gridTemplateColumns: '3fr 1fr 1fr 1fr 60px 64px', padding: '8px 12px' }}
+              className="flex flex-col gap-1.5 border-t border-[#e5e7eb] p-3 sm:grid sm:items-center sm:gap-0 sm:p-2 sm:px-3"
+              style={{ gridTemplateColumns: '3fr 1fr 1fr 1fr 60px 64px' }}
             >
-              <span className="flex items-center gap-2 text-[13px] text-[#1a1a1a]">
-                {item.name}
-                {conflictNames?.has(item.name.trim().toLowerCase()) && item.photoIndex !== undefined && (
-                  <span
-                    className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                    style={{ backgroundColor: '#EAF3DE', color: '#27500A' }}
-                  >
-                    з фото {item.photoIndex + 1}
-                  </span>
-                )}
-              </span>
-              <span>
-                {suggestedNew ? (
-                  <span
-                    className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-                    style={{ backgroundColor: '#EAF3DE', color: '#27500A' }}
-                    title="Нова категорія буде створена при збереженні"
-                  >
-                    нова: {suggestedNew}
-                  </span>
-                ) : (
-                  <ItemCategoryBadge name={catName} />
-                )}
-              </span>
-              <span className="text-[13px] text-[#6b7280]">
-                {item.quantity}{item.unit ? ` ${item.unit}` : ''}
-              </span>
-              <span className="text-[13px] text-[#6b7280]">{item.pricePerUnit} {currency}</span>
-              <span className="text-right text-[13px] text-[#1a1a1a]">
-                {(() => {
-                  const d = item.discountAmount ?? 0;
-                  const final = Math.max(0, Math.round((item.originalAmount - d) * 100) / 100);
-                  return d > 0 ? (
-                    <span className="flex flex-col items-end leading-tight">
-                      <span className="text-[10px] text-[#9ca3af] line-through">{item.originalAmount}</span>
-                      <span className="font-medium">{final} {currency}</span>
+              <div className="flex items-center justify-between gap-2 sm:contents">
+                <span className="flex items-center gap-2 text-[13px] text-[#1a1a1a]">
+                  {item.name}
+                  {conflictNames?.has(item.name.trim().toLowerCase()) && item.photoIndex !== undefined && (
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                      style={{ backgroundColor: '#EAF3DE', color: '#27500A' }}
+                    >
+                      з фото {item.photoIndex + 1}
+                    </span>
+                  )}
+                </span>
+                <span className="order-5 text-right text-[13px] text-[#1a1a1a]">
+                  {(() => {
+                    const d = item.discountAmount ?? 0;
+                    const final = Math.max(0, Math.round((item.originalAmount - d) * 100) / 100);
+                    return d > 0 ? (
+                      <span className="flex flex-col items-end leading-tight">
+                        <span className="text-[10px] text-[#9ca3af] line-through">{item.originalAmount}</span>
+                        <span className="font-medium">{final} {currency}</span>
+                      </span>
+                    ) : (
+                      <>{final} {currency}</>
+                    );
+                  })()}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:contents">
+                <span>
+                  {suggestedNew ? (
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                      style={{ backgroundColor: '#EAF3DE', color: '#27500A' }}
+                      title="Нова категорія буде створена при збереженні"
+                    >
+                      нова: {suggestedNew}
                     </span>
                   ) : (
-                    <>{final} {currency}</>
-                  );
-                })()}
-              </span>
-              <div className="flex justify-end gap-1">
+                    <ItemCategoryBadge name={catName} />
+                  )}
+                </span>
+                <span className="text-[13px] text-[#6b7280]">
+                  {item.quantity}{item.unit ? ` ${item.unit}` : ''}
+                </span>
+                <span className="text-[13px] text-[#6b7280]">{item.pricePerUnit} {currency}</span>
+              </div>
+              <div className="order-6 flex justify-end gap-1">
                 <button
                   type="button"
                   onClick={() => setSubModalItem(item)}

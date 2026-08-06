@@ -228,7 +228,7 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
           {!isLoading && !error && !breakdown && (
             <>
               <div
-                className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
+                className="hidden text-[11px] uppercase tracking-wide text-[#0F6E56] sm:grid"
                 style={{
                   gridTemplateColumns:
                     kind === 'item-category'
@@ -248,17 +248,20 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
               {(kind === 'transaction-category' || kind === 'payment-method') && receipts?.map((r) => (
                 <div
                   key={r.id}
-                  className="grid items-center border-b border-[#e5e7eb] px-4 py-2.5"
+                  className="flex items-center justify-between gap-2 border-b border-[#e5e7eb] px-4 py-2.5 sm:grid"
                   style={{ gridTemplateColumns: '1.4fr 1.4fr 0.8fr' }}
                 >
                   <span className="truncate text-[13px] text-[#1a1a1a]">
                     {r.storeName ?? '—'}
                   </span>
-                  <span className="text-[13px] text-[#6b7280]">
+                  <span className="hidden text-[13px] text-[#6b7280] sm:inline">
                     {formatShortDate(r.receiptDate)}
                   </span>
-                  <span className="tnum text-right text-[13px] font-medium text-[#1a1a1a]">
+                  <span className="tnum flex-shrink-0 text-right text-[13px] font-medium text-[#1a1a1a]">
                     {fmtMoney(r.totalAmount)} ₴
+                    <span className="block text-[11px] font-normal text-[#9ca3af] sm:hidden">
+                      {formatShortDate(r.receiptDate)}
+                    </span>
                   </span>
                 </div>
               ))}
@@ -266,17 +269,20 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
               {kind === 'store' && receipts?.map((r) => (
                 <div
                   key={r.id}
-                  className="grid items-center border-b border-[#e5e7eb] px-4 py-2.5"
+                  className="flex items-center justify-between gap-2 border-b border-[#e5e7eb] px-4 py-2.5 sm:grid"
                   style={{ gridTemplateColumns: '1.4fr 1.4fr 0.8fr' }}
                 >
-                  <span className="text-[13px] text-[#6b7280]">
-                    {formatShortDate(r.receiptDate)}
-                  </span>
-                  <span className="truncate text-[13px] text-[#1a1a1a]">
+                  <span className="truncate text-[13px] text-[#1a1a1a] sm:order-2">
                     {r.transactionCategoryName ?? 'Без категорії'}
                   </span>
-                  <span className="tnum text-right text-[13px] font-medium text-[#1a1a1a]">
+                  <span className="hidden text-[13px] text-[#6b7280] sm:order-1 sm:inline">
+                    {formatShortDate(r.receiptDate)}
+                  </span>
+                  <span className="tnum flex-shrink-0 text-right text-[13px] font-medium text-[#1a1a1a] sm:order-3">
                     {fmtMoney(r.totalAmount)} ₴
+                    <span className="block text-[11px] font-normal text-[#9ca3af] sm:hidden">
+                      {formatShortDate(r.receiptDate)}
+                    </span>
                   </span>
                 </div>
               ))}
@@ -284,17 +290,21 @@ export function DrillDownModal({ kind, item, filters, onClose }: Props) {
               {kind === 'item-category' && items?.map((it, idx) => (
                 <div
                   key={`${it.name}-${idx}`}
-                  className="grid items-center border-b border-[#e5e7eb] px-4 py-2.5"
+                  className="flex flex-col gap-1 border-b border-[#e5e7eb] px-4 py-2.5 sm:grid sm:items-center sm:gap-0"
                   style={{ gridTemplateColumns: '2fr 1.4fr 0.8fr 0.8fr' }}
                 >
-                  <span className="truncate text-[13px] text-[#1a1a1a]">{it.name}</span>
-                  <span className="truncate text-[13px] text-[#6b7280]">{it.storeName ?? '—'}</span>
-                  <span className="tnum text-[13px] text-[#6b7280]">
-                    {it.quantity}{it.unit ? ` ${it.unit}` : ''}
-                  </span>
-                  <span className="tnum text-right text-[13px] font-medium text-[#1a1a1a]">
-                    {fmtMoney(it.totalPrice)} ₴
-                  </span>
+                  <div className="flex items-center justify-between gap-2 sm:contents">
+                    <span className="truncate text-[13px] text-[#1a1a1a]">{it.name}</span>
+                    <span className="tnum order-4 text-right text-[13px] font-medium text-[#1a1a1a]">
+                      {fmtMoney(it.totalPrice)} ₴
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[13px] text-[#6b7280] sm:contents">
+                    <span className="truncate">{it.storeName ?? '—'}</span>
+                    <span className="tnum">
+                      {it.quantity}{it.unit ? ` ${it.unit}` : ''}
+                    </span>
+                  </div>
                 </div>
               ))}
 

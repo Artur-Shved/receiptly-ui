@@ -56,7 +56,7 @@ function CreateModal({ onClose, onCreate }: CreateModalProps) {
       onClick={onClose}
     >
       <div
-        className="w-[420px] rounded-xl bg-white p-6 shadow-xl"
+        className="w-[420px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -152,7 +152,7 @@ function EditModal({ method, onClose, onUpdate }: EditModalProps) {
       onClick={onClose}
     >
       <div
-        className="w-[420px] rounded-xl bg-white p-6 shadow-xl"
+        className="w-[420px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -231,7 +231,7 @@ function DeleteModal({ method, onClose, onDelete }: DeleteModalProps) {
       onClick={onClose}
     >
       <div
-        className="w-[400px] rounded-xl bg-white p-6 shadow-xl"
+        className="w-[400px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -306,7 +306,7 @@ function PaymentMethodRow({ method, onEdit, onDelete }: PaymentMethodRowProps) {
       </div>
 
       {/* Action buttons — hover reveal */}
-      <div className="flex gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+      <div className="flex gap-1 opacity-100 transition-opacity duration-150 md:opacity-0 md:group-hover:opacity-100">
         <button
           type="button"
           onClick={onEdit}

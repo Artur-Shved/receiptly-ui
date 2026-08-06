@@ -116,7 +116,7 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
       style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
       onClick={onCancel}
     >
-      <div className="w-[400px] rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-[400px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <h2 className="mb-2 text-[18px] font-medium text-[#1a1a1a]">Вийти з акаунту?</h2>
         <p className="mb-6 text-[14px] text-gray-500">Вас буде перенаправлено на стартовий екран. Дані збережуться.</p>
         <div className="flex justify-end gap-2">
@@ -401,7 +401,7 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
         <div className="flex-1 overflow-y-auto p-5">
           {error && <p className="mb-4 rounded-md bg-[#FCEBEB] px-3 py-2 text-[13px] text-[#A32D2D]">{error}</p>}
 
-          <div className="mb-5 grid grid-cols-2 gap-4">
+          <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-[12px] text-gray-500">Магазин</label>
               <SearchableStoreSelect
@@ -453,23 +453,29 @@ function EditModal({ receipt, onClose, onSave }: EditModalProps) {
               const discount = item.discountAmount ?? 0;
               const finalPrice = Math.max(0, Math.round((item.originalAmount - discount) * 100) / 100);
               return (
-                <div key={item._key} className="flex items-center gap-3 border-b border-[#e5e7eb] p-3 last:border-b-0">
-                  <span className="flex-1 text-[13px] text-[#1a1a1a]">{item.name}</span>
-                  <ItemCategoryBadge
-                    id={item.itemCategoryId}
-                    name={item.itemCategoryId ? itemCategories.find((c) => c.id === item.itemCategoryId)?.name : null}
-                  />
-                  <span className="text-[13px] text-[#6b7280]">{item.quantity}{item.unit ? ` ${item.unit}` : ''}</span>
-                  {discount > 0 ? (
-                    <span className="flex flex-col items-end leading-tight">
-                      <span className="text-[11px] text-[#9ca3af] line-through">{item.originalAmount} ₴</span>
-                      <span className="text-[12px] font-medium">{finalPrice} ₴</span>
-                    </span>
-                  ) : (
-                    <span className="text-[13px] text-[#6b7280]">{finalPrice} ₴</span>
-                  )}
-                  <button type="button" onClick={() => setSubModalItem(item)} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#F7F7F7] hover:text-[#1a1a1a]"><Pencil size={13} /></button>
-                  <button type="button" onClick={() => setItems((prev) => prev.filter((i) => i._key !== item._key))} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#FCEBEB] hover:text-[#A32D2D]"><Trash2 size={13} /></button>
+                <div key={item._key} className="flex flex-col gap-1.5 border-b border-[#e5e7eb] p-3 last:border-b-0 sm:flex-row sm:items-center sm:gap-3">
+                  <div className="flex items-center justify-between gap-2 sm:contents">
+                    <span className="flex-1 text-[13px] text-[#1a1a1a]">{item.name}</span>
+                    <div className="order-2 flex gap-1 sm:order-none">
+                      <button type="button" onClick={() => setSubModalItem(item)} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#F7F7F7] hover:text-[#1a1a1a]"><Pencil size={13} /></button>
+                      <button type="button" onClick={() => setItems((prev) => prev.filter((i) => i._key !== item._key))} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#FCEBEB] hover:text-[#A32D2D]"><Trash2 size={13} /></button>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 sm:contents">
+                    <ItemCategoryBadge
+                      id={item.itemCategoryId}
+                      name={item.itemCategoryId ? itemCategories.find((c) => c.id === item.itemCategoryId)?.name : null}
+                    />
+                    <span className="text-[13px] text-[#6b7280]">{item.quantity}{item.unit ? ` ${item.unit}` : ''}</span>
+                    {discount > 0 ? (
+                      <span className="flex flex-col items-end leading-tight">
+                        <span className="text-[11px] text-[#9ca3af] line-through">{item.originalAmount} ₴</span>
+                        <span className="text-[12px] font-medium">{finalPrice} ₴</span>
+                      </span>
+                    ) : (
+                      <span className="text-[13px] text-[#6b7280]">{finalPrice} ₴</span>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -559,7 +565,7 @@ function DeleteModal({ receipt, onClose, onDelete }: DeleteModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
-      <div className="w-[400px] rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-[400px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-[16px] font-medium text-[#1a1a1a]">Видалити чек?</h2>
           <button type="button" onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 hover:bg-[#F7F7F7]"><X size={16} /></button>
@@ -771,7 +777,7 @@ function ReceiptsContent() {
           {/* Filters row */}
           <div className="mb-4 flex flex-wrap items-center gap-2">
             {/* Search */}
-            <div className="relative" style={{ width: 220 }}>
+            <div className="relative w-full sm:w-[220px]">
               <Search size={14} className="absolute left-[10px] top-1/2 -translate-y-1/2 text-[#9ca3af]" />
               <input
                 type="text"
@@ -928,9 +934,9 @@ function ReceiptsContent() {
           {/* Table */}
           {!error && receipts.length > 0 && (
             <div className="card-surface overflow-hidden rounded-[14px]">
-              {/* Header */}
+              {/* Header — desktop only; mobile renders stacked cards instead */}
               <div
-                className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
+                className="hidden text-[11px] uppercase tracking-wide text-[#0F6E56] md:grid"
                 style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr 80px', backgroundColor: 'var(--brand-soft, #E1F5EE)', padding: '10px 16px' }}
               >
                 <span>Магазин</span>
@@ -961,41 +967,45 @@ function ReceiptsContent() {
                     return (
                       <div
                         key={receipt.id}
-                        className="group grid cursor-pointer items-center border-t border-[#e5e7eb] px-4 py-3 hover:bg-[#FAFAFB]"
-                        style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr 80px' }}
+                        className="group flex cursor-pointer flex-col gap-1.5 border-t border-[#e5e7eb] px-4 py-3 hover:bg-[#FAFAFB] md:grid md:grid-cols-[2fr_1.5fr_1fr_1fr_1fr_80px] md:items-center md:gap-0"
                         onClick={() => setDetailsReceipt(receipt)}
                       >
-                        {/* Store */}
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full text-[13px] font-medium"
-                            style={{ backgroundColor: storeC.bg, color: storeC.text }}
-                          >
-                            {storeName.charAt(0).toUpperCase()}
+                        {/* Store + amount */}
+                        <div className="flex items-center justify-between gap-2 md:contents">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="flex h-[30px] w-[30px] flex-shrink-0 items-center justify-center rounded-full text-[13px] font-medium"
+                              style={{ backgroundColor: storeC.bg, color: storeC.text }}
+                            >
+                              {storeName.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="text-[14px] font-medium text-[#1a1a1a]">{storeName}</span>
                           </div>
-                          <span className="text-[14px] font-medium text-[#1a1a1a]">{storeName}</span>
+
+                          {/* Amount — same position as store on mobile, 5th grid column on desktop */}
+                          <span className="tnum order-5 text-right text-[15px] font-semibold text-[#1a1a1a]">
+                            {receipt.totalAmount} {receipt.currency}
+                          </span>
                         </div>
 
-                        {/* Transaction Category */}
-                        <div>
-                          <TransactionCategoryBadge category={receipt.transactionCategory} />
+                        {/* Secondary meta line (mobile) */}
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 md:contents">
+                          {/* Transaction Category */}
+                          <div>
+                            <TransactionCategoryBadge category={receipt.transactionCategory} />
+                          </div>
+
+                          {/* Payment Method */}
+                          <span className="text-[13px] text-[#6b7280]">
+                            {receipt.paymentMethod?.name ?? '—'}
+                          </span>
+
+                          {/* Date */}
+                          <span className="text-[13px] text-[#6b7280]">{formatShortDate(receipt.receiptDate)}</span>
                         </div>
-
-                        {/* Payment Method */}
-                        <span className="text-[13px] text-[#6b7280]">
-                          {receipt.paymentMethod?.name ?? '—'}
-                        </span>
-
-                        {/* Date */}
-                        <span className="text-[13px] text-[#6b7280]">{formatShortDate(receipt.receiptDate)}</span>
-
-                        {/* Amount */}
-                        <span className="tnum text-right text-[15px] font-semibold text-[#1a1a1a]">
-                          {receipt.totalAmount} {receipt.currency}
-                        </span>
 
                         {/* Actions */}
-                        <div className="flex justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end gap-1 opacity-100 transition-opacity md:order-6 md:opacity-0 md:group-hover:opacity-100" onClick={(e) => e.stopPropagation()}>
                           <button type="button" onClick={() => setEditReceipt(receipt)} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#F7F7F7] hover:text-[#1a1a1a]">
                             <Pencil size={13} />
                           </button>

@@ -24,13 +24,13 @@ export function TopNav({ onLogoutClick }: TopNavProps) {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[#e5e7eb] bg-white px-6">
+    <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-3 border-b border-[#e5e7eb] bg-white px-4 sm:px-6">
       {choiceOpen && <AddReceiptChoiceModal onClose={() => setChoiceOpen(false)} />}
-      <Link href="/home" className="flex items-center" aria-label="Coino — на головну">
+      <Link href="/home" className="flex flex-shrink-0 items-center" aria-label="Coino — на головну">
         <Wordmark height={28} />
       </Link>
 
-      <nav className="flex gap-6">
+      <nav className="hidden gap-6 md:flex">
         <Link href="/home" className={navClass(pathname === '/home')}>
           Головна
         </Link>
@@ -48,14 +48,14 @@ export function TopNav({ onLogoutClick }: TopNavProps) {
         </Link>
       </nav>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-shrink-0 items-center gap-2 sm:gap-3">
         <Button
           fullWidth={false}
           icon={<Camera size={16} />}
           className="py-2 px-3 text-xs"
           onClick={() => setChoiceOpen(true)}
         >
-          Додати чек
+          <span className="hidden sm:inline">Додати чек</span>
         </Button>
 
         <div className="relative">
@@ -74,6 +74,29 @@ export function TopNav({ onLogoutClick }: TopNavProps) {
                 onClick={() => setDropdownOpen(false)}
               />
               <div className="absolute right-0 top-11 z-20 w-48 rounded-lg border border-[#e5e7eb] bg-white shadow-md">
+                <div className="border-b border-[#e5e7eb] py-1 md:hidden">
+                  <Link
+                    href="/home"
+                    className="flex items-center gap-2 px-4 py-2.5 text-[14px] text-gray-700 hover:bg-[#F7F7F7]"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    Головна
+                  </Link>
+                  <Link
+                    href="/receipts"
+                    className="flex items-center gap-2 px-4 py-2.5 text-[14px] text-gray-700 hover:bg-[#F7F7F7]"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    Чеки
+                  </Link>
+                  <Link
+                    href="/statistics"
+                    className="flex items-center gap-2 px-4 py-2.5 text-[14px] text-gray-700 hover:bg-[#F7F7F7]"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    Статистика
+                  </Link>
+                </div>
                 <Link
                   href="#"
                   className="flex items-center gap-2 px-4 py-3 text-[14px] text-gray-700 hover:bg-[#F7F7F7]"

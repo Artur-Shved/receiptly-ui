@@ -55,7 +55,7 @@ function CreateModal({ onClose, onCreate }: CreateModalProps) {
       onClick={onClose}
     >
       <div
-        className="w-[400px] rounded-xl bg-white p-6 shadow-xl"
+        className="w-[400px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -144,7 +144,7 @@ function EditModal({ category, onClose, onUpdate }: EditModalProps) {
       onClick={onClose}
     >
       <div
-        className="w-[400px] rounded-xl bg-white p-6 shadow-xl"
+        className="w-[400px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -228,7 +228,7 @@ function CategoryRow({ category, isSystem, onEdit }: CategoryRowProps) {
       )}
 
       {/* Action buttons — hover reveal */}
-      <div className="flex gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+      <div className="flex gap-1 opacity-100 transition-opacity duration-150 md:opacity-0 md:group-hover:opacity-100">
         {isSystem ? (
           <button
             type="button"
@@ -335,7 +335,7 @@ export default function TransactionCategoriesPage() {
       )}
 
       {/* Search row */}
-      <div className="mt-4" style={{ width: '260px' }}>
+      <div className="mt-4 w-full sm:w-[260px]">
         <div className="relative">
           <Search
             size={15}

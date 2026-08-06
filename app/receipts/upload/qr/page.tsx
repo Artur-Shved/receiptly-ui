@@ -117,7 +117,7 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
       style={{ backgroundColor: 'rgba(0,0,0,0.4)' }}
       onClick={onCancel}
     >
-      <div className="w-[400px] rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div className="w-[400px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <h2 className="mb-2 text-[18px] font-medium">Вийти з акаунту?</h2>
         <p className="mb-6 text-[14px] text-gray-500">
           Вас буде перенаправлено на стартовий екран. Дані збережуться.
@@ -862,7 +862,7 @@ export default function QrUploadPage() {
 
               <div className="overflow-hidden rounded-lg border border-[#e5e7eb]">
                 <div
-                  className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
+                  className="hidden text-[11px] uppercase tracking-wide text-[#0F6E56] sm:grid"
                   style={{ gridTemplateColumns: '3fr 1fr 1fr 56px', padding: '8px 12px', backgroundColor: 'var(--brand-soft, #E1F5EE)' }}
                 >
                   <span>Назва</span>
@@ -873,39 +873,41 @@ export default function QrUploadPage() {
                 {items.map((item) => (
                   <div
                     key={item._key}
-                    className="grid items-center border-t border-[#e5e7eb]"
-                    style={{ gridTemplateColumns: '3fr 1fr 1fr 56px', padding: '8px 12px' }}
+                    className="flex flex-col gap-1.5 border-t border-[#e5e7eb] p-3 sm:grid sm:items-center sm:gap-0 sm:p-2 sm:px-3"
+                    style={{ gridTemplateColumns: '3fr 1fr 1fr 56px' }}
                   >
-                    <span className="flex items-center gap-2 text-[13px] text-[#1a1a1a]">
-                      {item.name}
-                      {!item.itemCategoryId && item.suggestedCategoryName && (
-                        <span
-                          className="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                          style={{ backgroundColor: '#EAF3DE', color: '#27500A' }}
-                          title="Нова категорія буде створена при збереженні"
-                        >
-                          нова: {item.suggestedCategoryName}
-                        </span>
-                      )}
-                    </span>
+                    <div className="flex items-center justify-between gap-2 sm:contents">
+                      <span className="flex items-center gap-2 text-[13px] text-[#1a1a1a]">
+                        {item.name}
+                        {!item.itemCategoryId && item.suggestedCategoryName && (
+                          <span
+                            className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                            style={{ backgroundColor: '#EAF3DE', color: '#27500A' }}
+                            title="Нова категорія буде створена при збереженні"
+                          >
+                            нова: {item.suggestedCategoryName}
+                          </span>
+                        )}
+                      </span>
+                      <span className="order-3 text-right text-[13px] font-medium">
+                        {(() => {
+                          const d = item.discountAmount ?? 0;
+                          const final = Math.max(0, Math.round((item.originalAmount - d) * 100) / 100);
+                          return d > 0 ? (
+                            <span className="flex flex-col items-end leading-tight">
+                              <span className="text-[10px] text-[#9ca3af] line-through">{item.originalAmount}</span>
+                              <span>{final} ₴</span>
+                            </span>
+                          ) : (
+                            <>{final} ₴</>
+                          );
+                        })()}
+                      </span>
+                    </div>
                     <span className="text-[13px] text-[#6b7280]">
                       {item.quantity}{item.unit ? ` ${item.unit}` : ''}
                     </span>
-                    <span className="text-right text-[13px] font-medium">
-                      {(() => {
-                        const d = item.discountAmount ?? 0;
-                        const final = Math.max(0, Math.round((item.originalAmount - d) * 100) / 100);
-                        return d > 0 ? (
-                          <span className="flex flex-col items-end leading-tight">
-                            <span className="text-[10px] text-[#9ca3af] line-through">{item.originalAmount}</span>
-                            <span>{final} ₴</span>
-                          </span>
-                        ) : (
-                          <>{final} ₴</>
-                        );
-                      })()}
-                    </span>
-                    <div className="flex justify-end gap-1">
+                    <div className="order-4 flex justify-end gap-1">
                       <button type="button" onClick={() => setSubModalItem(item)} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#F7F7F7] hover:text-[#1a1a1a]"><Pencil size={13} /></button>
                       <button type="button" onClick={() => setItems((prev) => prev.filter((i) => i._key !== item._key))} className="flex h-7 w-7 items-center justify-center rounded-md text-[#9ca3af] hover:bg-[#FCEBEB] hover:text-[#A32D2D]"><Trash2 size={13} /></button>
                     </div>

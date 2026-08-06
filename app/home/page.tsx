@@ -92,7 +92,7 @@ function LogoutModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
       onClick={onCancel}
     >
       <div
-        className="w-[400px] rounded-xl bg-white p-6 shadow-xl"
+        className="w-[400px] max-w-[calc(100%-32px)] rounded-xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="mb-2 text-[18px] font-medium text-[#1a1a1a]">Вийти з акаунту?</h2>
@@ -281,9 +281,9 @@ export default function HomePage() {
 
         {!receiptsError && !receiptsLoading && recentReceipts.length > 0 && (
           <div className="overflow-hidden rounded-xl border border-[#e5e7eb] bg-white">
-            {/* Table header */}
+            {/* Table header — desktop only; mobile renders stacked cards instead */}
             <div
-              className="grid text-[11px] uppercase tracking-wide text-[#0F6E56]"
+              className="hidden text-[11px] uppercase tracking-wide text-[#0F6E56] md:grid"
               style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr', backgroundColor: 'var(--brand-soft, #E1F5EE)', padding: '10px 16px' }}
             >
               <span>Магазин</span>
@@ -303,26 +303,29 @@ export default function HomePage() {
                   tabIndex={0}
                   onClick={() => openReceipt(receipt.id)}
                   onKeyDown={(e) => { if (e.key === 'Enter') openReceipt(receipt.id); }}
-                  className="grid cursor-pointer items-center border-t border-[#e5e7eb] px-4 py-3 hover:bg-[#FAFAFA]"
-                  style={{ gridTemplateColumns: '2fr 1.5fr 1fr 1fr 1fr' }}
+                  className="flex cursor-pointer flex-col gap-1.5 border-t border-[#e5e7eb] px-4 py-3 hover:bg-[#FAFAFA] md:grid md:grid-cols-[2fr_1.5fr_1fr_1fr_1fr] md:items-center md:gap-0"
                 >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="flex h-[28px] w-[28px] flex-shrink-0 items-center justify-center rounded-full text-[12px] font-medium"
-                      style={{ backgroundColor: storeTint.bg, color: storeTint.text }}
-                    >
-                      {storeName.charAt(0).toUpperCase()}
+                  <div className="flex items-center justify-between gap-2 md:contents">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="flex h-[28px] w-[28px] flex-shrink-0 items-center justify-center rounded-full text-[12px] font-medium"
+                        style={{ backgroundColor: storeTint.bg, color: storeTint.text }}
+                      >
+                        {storeName.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-[14px] font-medium text-[#1a1a1a]">{storeName}</span>
                     </div>
-                    <span className="text-[14px] font-medium text-[#1a1a1a]">{storeName}</span>
+                    <span className="tnum order-5 text-right text-[15px] font-semibold text-[#1a1a1a]">
+                      {receipt.totalAmount} {receipt.currency}
+                    </span>
                   </div>
-                  <div>
-                    <CategoryBadge category={receipt.transactionCategory} />
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 md:contents">
+                    <div>
+                      <CategoryBadge category={receipt.transactionCategory} />
+                    </div>
+                    <span className="text-[13px] text-[#6b7280]">{formatShortDate(receipt.receiptDate)}</span>
+                    <span className="text-[13px] text-[#6b7280]">{receipt.paymentMethod?.name ?? '—'}</span>
                   </div>
-                  <span className="text-[13px] text-[#6b7280]">{formatShortDate(receipt.receiptDate)}</span>
-                  <span className="text-[13px] text-[#6b7280]">{receipt.paymentMethod?.name ?? '—'}</span>
-                  <span className="tnum text-right text-[15px] font-semibold text-[#1a1a1a]">
-                    {receipt.totalAmount} {receipt.currency}
-                  </span>
                 </div>
               );
             })}
