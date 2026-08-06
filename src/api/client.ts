@@ -28,6 +28,33 @@ function redirectToLogin(): void {
   window.location.href = '/login';
 }
 
+// Refresh tokens are single-use (rotated server-side on every /auth/refresh
+// call), so concurrent 401s must share ONE in-flight refresh instead of each
+// racing its own — the loser would present an already-deleted token and get
+// bounced to /login even though the session is fine. This is populated on
+// the first 401 and cleared once the refresh settles, so every caller that
+// hits 401 while it's in flight awaits the same promise.
+let refreshPromise: Promise<string | null> | null = null;
+
+function refreshAccessToken(): Promise<string | null> {
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then(async (refreshRes) => {
+        if (!refreshRes.ok) return null;
+        const data = (await refreshRes.json()) as { accessToken: string };
+        return data.accessToken;
+      })
+      .catch(() => null)
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -50,18 +77,10 @@ async function request<T>(
   });
 
   if (res.status === 401 && !isRetry && path !== '/auth/login' && path !== '/auth/refresh') {
-    try {
-      const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (refreshRes.ok) {
-        const data = await refreshRes.json() as { accessToken: string };
-        setAccessToken(data.accessToken);
-        return request<T>(path, options, true);
-      }
-    } catch {
-      // refresh failed
+    const newAccessToken = await refreshAccessToken();
+    if (newAccessToken) {
+      setAccessToken(newAccessToken);
+      return request<T>(path, options, true);
     }
     setAccessToken(null);
     redirectToLogin();
