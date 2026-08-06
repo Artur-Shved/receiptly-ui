@@ -74,29 +74,6 @@ export function TopNav({ onLogoutClick }: TopNavProps) {
                 onClick={() => setDropdownOpen(false)}
               />
               <div className="absolute right-0 top-11 z-20 w-48 rounded-lg border border-[#e5e7eb] bg-white shadow-md">
-                <div className="border-b border-[#e5e7eb] py-1 md:hidden">
-                  <Link
-                    href="/home"
-                    className="flex items-center gap-2 px-4 py-2.5 text-[14px] text-gray-700 hover:bg-[#F7F7F7]"
-                    onClick={() => setDropdownOpen(false)}
-                  >
-                    Головна
-                  </Link>
-                  <Link
-                    href="/receipts"
-                    className="flex items-center gap-2 px-4 py-2.5 text-[14px] text-gray-700 hover:bg-[#F7F7F7]"
-                    onClick={() => setDropdownOpen(false)}
-                  >
-                    Чеки
-                  </Link>
-                  <Link
-                    href="/statistics"
-                    className="flex items-center gap-2 px-4 py-2.5 text-[14px] text-gray-700 hover:bg-[#F7F7F7]"
-                    onClick={() => setDropdownOpen(false)}
-                  >
-                    Статистика
-                  </Link>
-                </div>
                 <Link
                   href="#"
                   className="flex items-center gap-2 px-4 py-3 text-[14px] text-gray-700 hover:bg-[#F7F7F7]"
@@ -106,7 +83,7 @@ export function TopNav({ onLogoutClick }: TopNavProps) {
                   Профіль
                 </Link>
                 <Link
-                  href="/settings/stores"
+                  href="/settings"
                   className="flex items-center gap-2 px-4 py-3 text-[14px] text-gray-700 hover:bg-[#F7F7F7]"
                   onClick={() => setDropdownOpen(false)}
                 >

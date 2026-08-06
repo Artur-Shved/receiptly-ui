@@ -15,6 +15,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { TopNav } from '@/src/components/features/home/TopNav';
+import { BottomTabBar } from '@/src/components/features/home/BottomTabBar';
 import { Button } from '@/src/components/ui/Button';
 import { SearchableStoreSelect } from '@/src/components/features/receipts/SearchableStoreSelect';
 import { SearchableEntitySelect } from '@/src/components/features/receipts/SearchableEntitySelect';
@@ -766,7 +767,7 @@ function ReceiptsContent() {
     <div className="flex min-h-screen flex-col">
       <TopNav onLogoutClick={() => setShowLogoutModal(true)} />
 
-      <main className="flex-1 bg-[#F7F7F7]">
+      <main className="flex-1 bg-[#F7F7F7] pb-20 md:pb-0">
         <div style={{ maxWidth: 1024, margin: '0 auto', padding: 24 }}>
           {/* Page header */}
           <div className="mb-6">
@@ -1044,6 +1045,8 @@ function ReceiptsContent() {
           )}
         </div>
       </main>
+
+      <BottomTabBar />
 
       {/* Modals */}
       {showLogoutModal && (

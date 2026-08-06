@@ -1,8 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { TopNav } from '@/src/components/features/home/TopNav';
+import { BottomTabBar } from '@/src/components/features/home/BottomTabBar';
 import { SettingsSidebar } from '@/src/components/features/settings/SettingsSidebar';
+import { MobileSettingsBackHeader } from '@/src/components/features/settings/MobileSettingsBackHeader';
 import { Button } from '@/src/components/ui/Button';
 import { useLogout } from '@/src/hooks/useAuth';
 
@@ -47,6 +50,8 @@ function LogoutModal({ onConfirm, onCancel }: LogoutModalProps) {
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { logout } = useLogout();
+  const pathname = usePathname();
+  const isSettingsHome = pathname === '/settings';
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -55,10 +60,15 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       <div className="flex flex-1 flex-col md:flex-row">
         <SettingsSidebar />
 
-        <main className="flex-1 bg-[#F7F7F7] p-4 sm:p-6">
-          {children}
-        </main>
+        <div className="flex flex-1 flex-col">
+          {!isSettingsHome && <MobileSettingsBackHeader />}
+          <main className="flex-1 bg-[#F7F7F7] p-4 pb-20 sm:p-6 md:pb-6">
+            {children}
+          </main>
+        </div>
       </div>
+
+      <BottomTabBar />
 
       {showLogoutModal && (
         <LogoutModal

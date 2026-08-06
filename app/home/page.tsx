@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Camera, Pencil, Receipt, Upload } from 'lucide-react';
 import { TopNav } from '@/src/components/features/home/TopNav';
+import { BottomTabBar } from '@/src/components/features/home/BottomTabBar';
 import { Button } from '@/src/components/ui/Button';
 import { Skeleton } from '@/src/components/ui/Skeleton';
 import { categoryColor } from '@/src/lib/category-colors';
@@ -177,7 +178,7 @@ export default function HomePage() {
     <div className="flex min-h-screen flex-col">
       <TopNav onLogoutClick={() => setShowLogoutModal(true)} />
 
-      <main className="flex-1 bg-[#F7F7F7]">
+      <main className="flex-1 bg-[#F7F7F7] pb-20 md:pb-0">
         <div className="mx-auto w-full max-w-[1024px] px-6 py-8">
         {/* Greeting */}
         <div className="mb-6">
@@ -333,6 +334,8 @@ export default function HomePage() {
         )}
         </div>
       </main>
+
+      <BottomTabBar />
 
       {detailsReceipt && (
         <ReceiptDetailsModal

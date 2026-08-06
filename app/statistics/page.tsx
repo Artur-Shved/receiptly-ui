@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { WifiOff, Receipt, Camera } from 'lucide-react';
 import Link from 'next/link';
 import { TopNav } from '@/src/components/features/home/TopNav';
+import { BottomTabBar } from '@/src/components/features/home/BottomTabBar';
 import { Button } from '@/src/components/ui/Button';
 import { useLogout } from '@/src/hooks/useAuth';
 import { useStores } from '@/src/hooks/useStores';
@@ -173,7 +174,7 @@ export default function StatisticsPage() {
     <div className="flex min-h-screen flex-col">
       <TopNav onLogoutClick={() => setShowLogoutModal(true)} />
 
-      <main className="flex-1 bg-[#F7F7F7]">
+      <main className="flex-1 bg-[#F7F7F7] pb-20 md:pb-0">
         <div className="mx-auto w-full" style={{ maxWidth: 1024, padding: 24 }}>
           {/* Header */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -340,6 +341,8 @@ export default function StatisticsPage() {
           )}
         </div>
       </main>
+
+      <BottomTabBar />
 
       {showFiltersModal && (
         <FiltersModal
