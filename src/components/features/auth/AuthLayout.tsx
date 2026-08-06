@@ -17,7 +17,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           {/* Brand mark for small screens, where the gradient panel is hidden. */}
           <div className="mb-8 flex items-center gap-2.5 md:hidden">
             <LogoIcon size={40} />
-            <span className="text-[22px] font-semibold tracking-tight text-[#1a1a1a]">Receiptly</span>
+            <span className="text-[22px] font-semibold tracking-tight text-[#1a1a1a]">Coino</span>
           </div>
           {children}
         </div>

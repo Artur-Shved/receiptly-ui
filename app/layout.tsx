@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Receiptly",
+  title: "Coino",
   description: "Облік витрат через сканування чеків",
 };
 

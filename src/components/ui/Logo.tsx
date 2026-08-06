@@ -1,5 +1,5 @@
 /**
- * Receiptly brand logo for the web app — a faithful port of the mobile
+ * Coino brand logo for the web app — a faithful port of the mobile
  * `components/ui/logo.tsx` (react-native-svg) to plain DOM SVG. Source of
  * truth: `receiptly-mobile/assets/logo/*.svg`.
  *
@@ -30,7 +30,7 @@ interface IconProps {
 /** Square app mark (receipt + hryvnia) on the brand gradient. */
 export function LogoIcon({ size = 44, simple = false }: IconProps) {
   return (
-    <svg width={size} height={size} viewBox="0 0 80 80" role="img" aria-label="Receiptly">
+    <svg width={size} height={size} viewBox="0 0 80 80" role="img" aria-label="Coino">
       <defs>
         <linearGradient id="rcptIconG" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor={GRAD_FROM} />
@@ -65,11 +65,11 @@ interface WordmarkProps {
   height?: number;
 }
 
-/** Horizontal wordmark (compact mark + "Receiptly"). */
+/** Horizontal wordmark (compact mark + "Coino"). */
 export function Wordmark({ height = 32 }: WordmarkProps) {
   const width = (height * 168) / 32;
   return (
-    <svg width={width} height={height} viewBox="0 0 168 32" role="img" aria-label="Receiptly">
+    <svg width={width} height={height} viewBox="0 0 168 32" role="img" aria-label="Coino">
       <defs>
         <linearGradient id="rcptWmcG" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor={GRAD_FROM} />
@@ -85,7 +85,7 @@ export function Wordmark({ height = 32 }: WordmarkProps) {
         ₴
       </text>
       <text x={42} y={22} fontSize={16} fontWeight={500} fill="#1a1a1a" fontFamily={SANS} letterSpacing={-0.3}>
-        Receiptly
+        Coino
       </text>
     </svg>
   );

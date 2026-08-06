@@ -9,7 +9,7 @@ const FEATURES = [
 /** White receipt + ₴ mark (mark-mono) for use on the gradient panel. */
 function MarkWhite({ size = 30 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 80 80" role="img" aria-label="Receiptly">
+    <svg width={size} height={size} viewBox="0 0 80 80" role="img" aria-label="Coino">
       <path
         d="M23 15 h34 v50 l-4.25 -3 l-4.25 3 l-4.25 -3 l-4.25 3 l-4.25 -3 l-4.25 3 l-4.25 -3 l-4.25 3 z"
         fill="none"
@@ -48,14 +48,14 @@ export function BrandPanel() {
           >
             <MarkWhite size={30} />
           </div>
-          <span className="text-[30px] font-semibold tracking-tight text-white">Receiptly</span>
+          <span className="text-[30px] font-semibold tracking-tight text-white">Coino</span>
         </div>
 
         <h2 className="mb-3 max-w-[420px] text-[34px] font-semibold leading-tight text-white">
           Контроль витрат починається з чека
         </h2>
         <p className="mb-10 max-w-[360px] text-[16px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.78)' }}>
-          Сфотографуйте чек — Receiptly розпізнає товари, розкладе по категоріях і покаже, куди йдуть гроші.
+          Сфотографуйте чек — Coino розпізнає товари, розкладе по категоріях і покаже, куди йдуть гроші.
         </p>
 
         <ul className="flex flex-col gap-4">

@@ -26,7 +26,7 @@ export function TopNav({ onLogoutClick }: TopNavProps) {
   return (
     <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[#e5e7eb] bg-white px-6">
       {choiceOpen && <AddReceiptChoiceModal onClose={() => setChoiceOpen(false)} />}
-      <Link href="/home" className="flex items-center" aria-label="Receiptly — на головну">
+      <Link href="/home" className="flex items-center" aria-label="Coino — на головну">
         <Wordmark height={28} />
       </Link>
 
